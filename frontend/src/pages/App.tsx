@@ -1,9 +1,9 @@
 
 import React, { useState } from 'react';
-import Layout from './components/Layout';
-import Scanner from './components/Scanner';
-import Dashboard from './components/Dashboard';
-import Infrastructure from './components/Infrastructure';
+import Layout from '../components/Layout';
+import Scanner from '../components/Scanner';
+import Dashboard from '../components/Dashboard';
+import Infrastructure from '../components/Infrastructure';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('scanner');
