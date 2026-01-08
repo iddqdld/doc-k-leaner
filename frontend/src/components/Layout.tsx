@@ -9,8 +9,8 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab }) => {
   const navItems = [
-    { id: 'sandbox', label: 'Sandbox', icon: '📦' },
-    { id: 'scanner', label: 'Analyses Rapides', icon: '📄' },
+    { id: 'sandbox', label: 'Audit', icon: '📦' },
+    { id: 'scanner', label: 'Sandbox', icon: '📄' },
     { id: 'collections', label: 'Collections de Fichiers', icon: '📁' },
     { id: 'ressources', label: 'Ressources', icon: '📁' },
     { id: 'demande', label: "Demande D'Informations", icon: '❓' },
