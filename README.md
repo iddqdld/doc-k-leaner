@@ -8,15 +8,15 @@ main brunch is for stable version after testig, as I do testing, i made it so on
 
 all work should be done like this 
 -----------------------------------------------------------------------------------------
-git checkout dev 
-git pull origin dev
-git checkout -b feature/nom de truc que vous develope
+    git checkout dev 
+    git pull origin dev
+    git checkout -b feature/nom de truc que vous develope
 
 # quand le truc est pret
 
-git add .
-git commit -m "description de truc que vous avez fait"
-git push origin feature/nom de truc que vous develope
+    git add .
+    git commit -m "description de truc que vous avez fait"
+    git push origin feature/nom de truc que vous develope
 ------------------------------------------------------------------------------------------
 Apres il faut passez par le site de github
 Creez PR request feature/... --> dev
@@ -33,3 +33,13 @@ fait la documentation pour tous les trucs que vous ajoute, comme ca on pourrait 
 vous avez un fichier README dans votre folder pour ca.
 
 fait attention a bien push tous vos features quand ils sont bien fonctionelle. n'oublie pas verifie que vos changement ne rester pas dans gitignore.
+
+# git tree 
+
+to use in the current repo only type this in bash
+
+    git config alias.tree "log --graph --decorate --pretty=oneline --abbrev-commit"  
+
+to use in the global config
+
+    git config --global alias.tree "log --graph --decorate --pretty=oneline --abbrev-commit"  
