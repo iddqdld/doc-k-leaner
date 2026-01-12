@@ -1,0 +1,55 @@
+from pydantic_settings import BaseSettings
+
+
+class Settings(BaseSettings):
+    """Application settings."""
+
+    redis_url: str = "redis://redis:6379"
+    
+    max_file_size_mb: int = 20
+    max_file_size_bytes: int = 20 * 1024 * 1024  # 20MB comme bytes
+    
+    # whitelist
+    allowed_extensions: set[str] = {
+        # Docker & Container configs
+        ".dockerfile",
+        ".dockerignore",
+        # Compose & Orchestration
+        ".yml",
+        ".yaml",
+        # configs
+        ".json",
+        ".toml",
+        ".conf",
+        ".cfg",
+        ".env",
+        ".properties",
+        # Kubernetes
+        ".k8s",
+        # Nginx / Apache
+        ".nginx",
+        # txt/md (documentation si ils ont oublie de nettoyer les cles secret for les api ou qqch)
+        ".txt",
+        ".md",
+    }
+    
+    # Allowed MIME types (pour notre service de validation interne)
+    allowed_mime_types: set[str] = {
+        "text/plain",
+        "text/yaml",
+        "text/x-yaml",
+        "application/x-yaml",
+        "application/json",
+        "application/toml",
+        "text/x-sh",
+        "application/x-sh",
+        "application/octet-stream",  # Fallback for unknown text files
+    }
+    
+    # prefix si on veut faire le override of the setting in some usecases, c pratique d'avoir une imo 
+    class Config:
+        env_prefix = "DOCKCLEANER_"  # e.g., DOCKCLEANER_MAX_FILE_SIZE_MB=50
+
+
+# Singleton instance
+settings = Settings()
