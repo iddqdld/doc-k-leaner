@@ -23,3 +23,6 @@ Convert to JSON string
 il y a beacoup plus de fonctionalite dans pydantic on a definie que la structure la pour tout future developement.
 
 So, we are using pipeline method to send both parts toghether to our redis server, so we don't get corrupted data if smth happens betwen sending part1(metadata) and part2(content) (ex. server crash). we are prepering them and then sending, this permits us to have all or nothing result. we either got everything or nothing. 
+---
+api/files.py
+pretty selfexplanatory, better to check the file to get more info
