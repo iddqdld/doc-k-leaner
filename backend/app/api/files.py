@@ -32,6 +32,8 @@ from app.services.file_service import (
     InvalidFileTypeError,
     FileNotFoundError,
 )
+import json
+from app import trivy_scan
 
 # setup example @router.post("/upload") -> POST /api/files/upload
 router = APIRouter(
@@ -100,6 +102,19 @@ async def upload_file(
         content_type=file.content_type or "application/octet-stream",
         source="upload",
     )
+
+    # Try to run Trivy scan on uploaded file (if supported)
+    try:
+        scan_result = trivy_scan.run_trivy_on_bytes(content, metadata.filename)
+        if scan_result is not None:
+            # store raw trivy JSON under a separate key
+            await redis.set(f"file:{metadata.file_id}:trivy", json.dumps(scan_result))
+    except Exception:
+        # Do not fail upload if scanning fails; just log to stdout for now
+        try:
+            print("Trivy scan failed for uploaded file", metadata.filename)
+        except Exception:
+            pass
     
     # return response
     return FileUploadResponse(
