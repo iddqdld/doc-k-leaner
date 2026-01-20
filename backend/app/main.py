@@ -48,6 +48,11 @@ async def health_check():
     return {"status": "healthy"}
 
 
+# Include API routers
+from app.api.scan import router as scan_router
+app.include_router(scan_router)
+
+
 def _cli():
     import argparse
     from app import trivy_scan, dedupe_json

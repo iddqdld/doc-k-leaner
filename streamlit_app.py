@@ -1,7 +1,8 @@
 import streamlit as st
 import os
-import shutil
 import uuid
+import requests
+from requests import RequestException
 
 # 1. Fonction Placeholder pour votre logique d'analyse
 # C'est ici que vous connecterez votre moteur d'analyse réel
@@ -54,11 +55,16 @@ if uploaded_file is not None:
     file_id = str(uuid.uuid4())
     st.success(f"Fichier '{uploaded_file.name}' téléchargé avec succès ! ID: {file_id}")
 
-    # Indicateur de chargement pendant l'analyse
-    with st.spinner('Analyse des menaces en cours...'):
+    # Indicateur de chargement pendant l'analyse (via backend)
+    backend_url = os.environ.get("DOCKCLEANER_API", "http://localhost:8000")
+    scan_endpoint = f"{backend_url}/api/scan"
+
+    with st.spinner('Analyse des menaces en cours (backend)...'):
         try:
-            # LANCEMENT DE L'ANALYSE
-            result = scan_malware(file_path)
+            files = {"file": (uploaded_file.name, uploaded_file.getbuffer())}
+            resp = requests.post(scan_endpoint, files=files, timeout=120)
+            resp.raise_for_status()
+            result = resp.json()
 
             # Affichage des résultats
             st.write("---")
@@ -69,19 +75,19 @@ if uploaded_file is not None:
             else:
                 st.error("⚠️ Menace potentielle détectée")
 
-            st.json(result)  # Affiche les détails techniques
+            st.json(result)
 
+        except RequestException as e:
+            st.error(f"Erreur réseau vers le backend: {e}")
         except Exception as e:
-            st.error(f"Une erreur est survenue lors de l'analyse : {e}")
+            st.error(f"Erreur lors de l'analyse: {e}")
         finally:
-            # Nettoyage : On supprime le fichier après analyse pour ne pas saturer le Docker
+            # Nettoyage local du fichier temporaire
             try:
                 if os.path.exists(file_path):
                     os.remove(file_path)
 
-                # Supprimer le dossier temporaire s'il est vide
                 if os.path.isdir(temp_dir) and not os.listdir(temp_dir):
                     os.rmdir(temp_dir)
             except Exception:
-                # Ne pas planter l'UI si le nettoyage échoue
                 pass
