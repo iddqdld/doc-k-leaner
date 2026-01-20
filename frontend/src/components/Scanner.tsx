@@ -1,6 +1,8 @@
 import React, { useState, useRef, DragEvent } from 'react';
 import { uploadFile, uploadFromUrl, FileUploadResponse } from '../services/fileApi';
 
+const API_BASE = (import.meta.env && import.meta.env.VITE_API_URL) || 'http://localhost:8000';
+
 const Scanner: React.FC = () => {
   // Form state
   const [url, setUrl] = useState('');
@@ -233,6 +235,17 @@ const Scanner: React.FC = () => {
                 Allowed: .yml, .yaml, .json, .toml, .conf, .env, .tf, .sh, Dockerfile
               </div>
             </div>
+            {/* Scan result */}
+            {isScanning && (
+              <div className="p-4 text-sm text-white">Analyse en cours...</div>
+            )}
+
+            {scanResult && (
+              <div className="p-4 bg-white/5 text-sm text-white mt-4 rounded">
+                <div className="font-bold mb-2">Résultat</div>
+                <pre className="whitespace-pre-wrap text-xs">{JSON.stringify(scanResult, null, 2)}</pre>
+              </div>
+            )}
           </div>
         </div>
 
