@@ -1,12 +1,57 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { analyzeSecurityConfig } from '../services/geminiService';
 import { AuditType } from '../types';
+
+const API_BASE = (import.meta.env && import.meta.env.VITE_API_URL) || 'http://localhost:8000';
 
 const Scanner: React.FC = () => {
   const [url, setUrl] = useState('');
   const [activeSubTab, setActiveSubTab] = useState<'file' | 'search'>('file');
   const [isScanning, setIsScanning] = useState(false);
+  const [scanResult, setScanResult] = useState<any | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const uploadFileToBackend = async (file: File) => {
+    setIsScanning(true);
+    setScanResult(null);
+    try {
+      const fd = new FormData();
+      fd.append('file', file, file.name);
+      const res = await fetch(`${API_BASE}/api/scan`, { method: 'POST', body: fd });
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(`${res.status} ${txt}`);
+      }
+      const json = await res.json();
+      setScanResult(json);
+    } catch (err: any) {
+      setScanResult({ status: 'Error', details: String(err) });
+    } finally {
+      setIsScanning(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const f = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f) uploadFileToBackend(f);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleChooseFile = () => {
+    fileInputRef.current?.click();
+  };
+
+  const onFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files && e.target.files[0];
+    if (f) uploadFileToBackend(f);
+  };
 
   return (
     <div className="w-full space-y-8 animate-in fade-in duration-700">
@@ -43,11 +88,12 @@ const Scanner: React.FC = () => {
               </p>
 
               {/* Drag & Drop Area */}
-              <div className="w-full h-40 border-2 border-dashed border-white/40 rounded-sm bg-white/5 flex flex-col items-center justify-center cursor-pointer hover:bg-white/10 transition-colors group">
+              <div onDrop={handleDrop} onDragOver={handleDragOver} onClick={handleChooseFile} className="w-full h-40 border-2 border-dashed border-white/40 rounded-sm bg-white/5 flex flex-col items-center justify-center cursor-pointer hover:bg-white/10 transition-colors group">
                 <div className="flex items-center gap-1 mb-2 text-white/60 group-hover:scale-110 transition-transform">
                   <span className="text-4xl">⚙️⚙️</span>
                 </div>
                 <p className="text-white/80 text-sm font-medium">Drag & Drop Pour Une Analyse Instantanée</p>
+                <input ref={fileInputRef} type="file" onChange={onFileInput} className="hidden" />
               </div>
 
               <div className="w-full flex items-center gap-2 text-white/50 text-xs py-2">
@@ -87,6 +133,17 @@ const Scanner: React.FC = () => {
                 Powered by <span className="text-orange-400 font-bold">À préciser plus tard</span> .
               </div>
             </div>
+            {/* Scan result */}
+            {isScanning && (
+              <div className="p-4 text-sm text-white">Analyse en cours...</div>
+            )}
+
+            {scanResult && (
+              <div className="p-4 bg-white/5 text-sm text-white mt-4 rounded">
+                <div className="font-bold mb-2">Résultat</div>
+                <pre className="whitespace-pre-wrap text-xs">{JSON.stringify(scanResult, null, 2)}</pre>
+              </div>
+            )}
           </div>
         </div>
 
