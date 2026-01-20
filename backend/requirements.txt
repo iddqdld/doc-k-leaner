@@ -3,3 +3,4 @@ uvicorn[standard]>=0.34.0
 fastapi-cache2[redis]>=0.2.2
 pydantic>=2.10.0
 pydantic-settings>=2.7.0
+python-multipart
