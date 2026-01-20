@@ -1,94 +1,106 @@
-
-import React, { useState, useRef } from 'react';
-import { analyzeSecurityConfig } from '../services/geminiService';
-import { AuditType } from '../types';
+import React, { useState, useRef, DragEvent } from 'react';
+import { uploadFile, uploadFromUrl, FileUploadResponse } from '../services/fileApi';
 
 const API_BASE = (import.meta.env && import.meta.env.VITE_API_URL) || 'http://localhost:8000';
 
 const Scanner: React.FC = () => {
+  // Form state
   const [url, setUrl] = useState('');
   const [activeSubTab, setActiveSubTab] = useState<'file' | 'search'>('file');
-  const [isScanning, setIsScanning] = useState(false);
-  const [scanResult, setScanResult] = useState<any | null>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-
-  const allowedEndings = [
-    '.dockerfile',
-    '.dockerignore',
-    '.yml',
-    '.yaml',
-    '.json',
-    '.toml',
-    '.conf',
-    '.cfg',
-    '.env',
-    '.properties',
-    '.k8s',
-    '.nginx',
-    '.txt',
-    '.md',
-  ];
-
-  const acceptAttr = allowedEndings.join(',');
-
-  const isAllowedFile = (name?: string) => {
-    if (!name) return false;
-    const n = name.toLowerCase();
-    if (n === 'dockerfile') return true;
-    return allowedEndings.some((e) => n.endsWith(e));
+  
+  // Upload state
+  const [isUploading, setIsUploading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [uploadedFile, setUploadedFile] = useState<FileUploadResponse | null>(null);
+  
+  // Hidden file input ref (for click to upload)
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
   };
 
-  const uploadFileToBackend = async (file: File) => {
-    setIsScanning(true);
-    setScanResult(null);
-    try {
-      const fd = new FormData();
-      fd.append('file', file, file.name);
-      const res = await fetch(`${API_BASE}/api/scan`, { method: 'POST', body: fd });
-      if (!res.ok) {
-        const txt = await res.text();
-        throw new Error(`${res.status} ${txt}`);
-      }
-      const json = await res.json();
-      setScanResult(json);
-    } catch (err: any) {
-      setScanResult({ status: 'Error', details: String(err) });
-    } finally {
-      setIsScanning(false);
+  const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = async (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      await handleFileUpload(files[0]);
     }
   };
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const f = e.dataTransfer.files && e.dataTransfer.files[0];
-    if (f) {
-      if (!isAllowedFile(f.name)) {
-        setScanResult({ status: 'Rejected', details: `File type not allowed: ${f.name}` });
-        return;
-      }
-      uploadFileToBackend(f);
-    }
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-  };
-
-  const handleChooseFile = () => {
+  const handleDropZoneClick = () => {
     fileInputRef.current?.click();
   };
 
-  const onFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files && e.target.files[0];
-    if (f) {
-      if (!isAllowedFile(f.name)) {
-        setScanResult({ status: 'Rejected', details: `File type not allowed: ${f.name}` });
-        return;
-      }
-      uploadFileToBackend(f);
+  const handleFileInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      await handleFileUpload(files[0]);
     }
+    // Reset input so same file can be selected again
+    e.target.value = '';
+  };
+
+  const handleFileUpload = async (file: File) => {
+    setIsUploading(true);
+    setError(null);
+    setUploadedFile(null);
+
+    try {
+      const result = await uploadFile(file);
+      setUploadedFile(result);
+      console.log('File uploaded:', result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Upload failed');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleUrlSubmit = async () => {
+    if (!url.trim()) {
+      setError('Please enter a URL');
+      return;
+    }
+
+    setIsUploading(true);
+    setError(null);
+    setUploadedFile(null);
+
+    try {
+      const result = await uploadFromUrl(url);
+      setUploadedFile(result);
+      setUrl(''); // Clear input on success
+      console.log('File fetched from URL:', result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch URL');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleUrlSubmit();
+    }
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
   return (
@@ -125,14 +137,65 @@ const Scanner: React.FC = () => {
                 Il s'agit d'un service gratuit d'analyse des logiciels malveillants pour la communauté qui détecte et analyse les menaces inconnues.
               </p>
 
-              {/* Drag & Drop Area */}
-              <div onDrop={handleDrop} onDragOver={handleDragOver} onClick={handleChooseFile} className="w-full h-40 border-2 border-dashed border-white/40 rounded-sm bg-white/5 flex flex-col items-center justify-center cursor-pointer hover:bg-white/10 transition-colors group">
-                <div className="flex items-center gap-1 mb-2 text-white/60 group-hover:scale-110 transition-transform">
-                  <span className="text-4xl">⚙️⚙️</span>
+              {/* Error Message */}
+              {error && (
+                <div className="w-full bg-red-500/20 border border-red-400/50 rounded px-4 py-2 text-red-200 text-sm">
+                  {error}
                 </div>
-                <p className="text-white/80 text-sm font-medium">Drag & Drop Pour Une Analyse Instantanée</p>
-                <input ref={fileInputRef} type="file" accept={acceptAttr} onChange={onFileInput} className="hidden" />
+              )}
+
+              {/* Success Message */}
+              {uploadedFile && (
+                <div className="w-full bg-green-500/20 border border-green-400/50 rounded px-4 py-3 text-green-200 text-sm text-left">
+                  <p className="font-bold mb-1">✓ File uploaded successfully!</p>
+                  <p><span className="text-green-300">Filename:</span> {uploadedFile.filename}</p>
+                  <p><span className="text-green-300">Size:</span> {formatFileSize(uploadedFile.size)}</p>
+                  <p><span className="text-green-300">ID:</span> <code className="bg-black/20 px-1 rounded">{uploadedFile.file_id}</code></p>
+                </div>
+              )}
+
+              {/* Drag & Drop Area */}
+              <div 
+                onClick={handleDropZoneClick}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                className={`
+                  w-full h-40 border-2 border-dashed rounded-sm 
+                  flex flex-col items-center justify-center cursor-pointer 
+                  transition-all duration-200 group
+                  ${isDragging 
+                    ? 'border-white bg-white/20 scale-[1.02]' 
+                    : 'border-white/40 bg-white/5 hover:bg-white/10'}
+                  ${isUploading ? 'pointer-events-none opacity-50' : ''}
+                `}
+              >
+                {isUploading ? (
+                  <>
+                    <div className="animate-spin text-4xl mb-2">⚙️</div>
+                    <p className="text-white/80 text-sm font-medium">Uploading...</p>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-1 mb-2 text-white/60 group-hover:scale-110 transition-transform">
+                      <span className="text-4xl">⚙️⚙️</span>
+                    </div>
+                    <p className="text-white/80 text-sm font-medium">
+                      {isDragging ? 'Drop your file here!' : 'Drag & Drop Pour Une Analyse Instantanée'}
+                    </p>
+                    <p className="text-white/50 text-xs mt-1">or click to browse</p>
+                  </>
+                )}
               </div>
+
+              {/* Hidden file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                onChange={handleFileInputChange}
+                className="hidden"
+                accept=".yml,.yaml,.json,.toml,.ini,.conf,.cfg,.env,.properties,.tf,.hcl,.sh,.bash,.txt,.md"
+              />
 
               <div className="w-full flex items-center gap-2 text-white/50 text-xs py-2">
                 <div className="flex-1 h-px bg-white/20"></div>
@@ -147,17 +210,18 @@ const Scanner: React.FC = () => {
                     type="text" 
                     value={url}
                     onChange={(e) => setUrl(e.target.value)}
-                    placeholder="http://www.example.com/suspicious.zip"
-                    className="w-full h-11 px-4 py-2 text-sm bg-white rounded-l-sm outline-none text-gray-800 placeholder:text-gray-400"
+                    onKeyPress={handleKeyPress}
+                    placeholder="https://raw.githubusercontent.com/user/repo/main/docker-compose.yml"
+                    className="w-full h-11 px-4 py-2 text-sm bg-white rounded-l-sm outline-none text-gray-800 placeholder:text-gray-400 disabled:opacity-50"
+                    disabled={isUploading}
                   />
-                  <button className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                    📎
-                  </button>
                 </div>
                 <button 
-                  className="bg-[#ff9d24] text-white px-6 font-bold text-xs rounded-r-sm hover:bg-[#e68a1f] transition-colors"
+                  onClick={handleUrlSubmit}
+                  disabled={isUploading}
+                  className="bg-[#ff9d24] text-white px-6 font-bold text-xs rounded-r-sm hover:bg-[#e68a1f] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Analyser
+                  {isUploading ? 'Loading...' : 'Analyser'}
                 </button>
               </div>
             </div>
@@ -165,10 +229,10 @@ const Scanner: React.FC = () => {
             {/* Bottom info bar */}
             <div className="bg-white/5 py-4 px-6 border-t border-white/10 text-center">
               <p className="text-[10px] text-white/40 uppercase tracking-widest">
-                Maximum upload size is XXX MB.
+                Maximum upload size is 20 MB.
               </p>
               <div className="text-[10px] text-white/60 mt-1">
-                Powered by <span className="text-orange-400 font-bold">À préciser plus tard</span> .
+                Allowed: .yml, .yaml, .json, .toml, .conf, .env, .tf, .sh, Dockerfile
               </div>
             </div>
             {/* Scan result */}
