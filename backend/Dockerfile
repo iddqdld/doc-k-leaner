@@ -10,7 +10,6 @@ RUN apt-get update \
         gnupg \
         lsb-release \
     && rm -rf /var/lib/apt/lists/* \
-    && # Install Trivy via official install script (stable binary)
     && wget -qO - https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin 0.44.3 \
     && rm -rf /var/lib/apt/lists/*
 
