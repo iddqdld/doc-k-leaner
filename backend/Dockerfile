@@ -10,8 +10,7 @@ RUN apt-get update \
         gnupg \
         lsb-release \
     && rm -rf /var/lib/apt/lists/* \
-    && # Install Trivy from Aquasecurity repo
-    wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | gpg --dearmor -o /usr/share/keyrings/trivy-archive-keyring.gpg \
+    && wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | gpg --dearmor -o /usr/share/keyrings/trivy-archive-keyring.gpg \
     && echo "deb [signed-by=/usr/share/keyrings/trivy-archive-keyring.gpg] https://aquasecurity.github.io/trivy-repo/deb stable main" > /etc/apt/sources.list.d/trivy.list \
     && apt-get update \
     && apt-get install -y --no-install-recommends trivy \
