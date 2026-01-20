@@ -10,7 +10,7 @@ RUN apt-get update \
         gnupg \
         lsb-release \
     && rm -rf /var/lib/apt/lists/* \
-    && wget -qO - https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin 0.44.3 \
+    && wget -qO - https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin latest \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
