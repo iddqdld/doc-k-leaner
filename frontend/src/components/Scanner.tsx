@@ -12,6 +12,32 @@ const Scanner: React.FC = () => {
   const [scanResult, setScanResult] = useState<any | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  const allowedEndings = [
+    '.dockerfile',
+    '.dockerignore',
+    '.yml',
+    '.yaml',
+    '.json',
+    '.toml',
+    '.conf',
+    '.cfg',
+    '.env',
+    '.properties',
+    '.k8s',
+    '.nginx',
+    '.txt',
+    '.md',
+  ];
+
+  const acceptAttr = allowedEndings.join(',');
+
+  const isAllowedFile = (name?: string) => {
+    if (!name) return false;
+    const n = name.toLowerCase();
+    if (n === 'dockerfile') return true;
+    return allowedEndings.some((e) => n.endsWith(e));
+  };
+
   const uploadFileToBackend = async (file: File) => {
     setIsScanning(true);
     setScanResult(null);
@@ -36,7 +62,13 @@ const Scanner: React.FC = () => {
     e.preventDefault();
     e.stopPropagation();
     const f = e.dataTransfer.files && e.dataTransfer.files[0];
-    if (f) uploadFileToBackend(f);
+    if (f) {
+      if (!isAllowedFile(f.name)) {
+        setScanResult({ status: 'Rejected', details: `File type not allowed: ${f.name}` });
+        return;
+      }
+      uploadFileToBackend(f);
+    }
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -50,7 +82,13 @@ const Scanner: React.FC = () => {
 
   const onFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files && e.target.files[0];
-    if (f) uploadFileToBackend(f);
+    if (f) {
+      if (!isAllowedFile(f.name)) {
+        setScanResult({ status: 'Rejected', details: `File type not allowed: ${f.name}` });
+        return;
+      }
+      uploadFileToBackend(f);
+    }
   };
 
   return (
@@ -93,7 +131,7 @@ const Scanner: React.FC = () => {
                   <span className="text-4xl">⚙️⚙️</span>
                 </div>
                 <p className="text-white/80 text-sm font-medium">Drag & Drop Pour Une Analyse Instantanée</p>
-                <input ref={fileInputRef} type="file" onChange={onFileInput} className="hidden" />
+                <input ref={fileInputRef} type="file" accept={acceptAttr} onChange={onFileInput} className="hidden" />
               </div>
 
               <div className="w-full flex items-center gap-2 text-white/50 text-xs py-2">
