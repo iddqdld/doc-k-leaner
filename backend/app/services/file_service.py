@@ -111,7 +111,8 @@ async def store_file(
     content: bytes,
     content_type: str,
     source: str,
-    original_url: Optional[str] = None
+    original_url: Optional[str] = None,
+    file_id: Optional[str] = None,
 ) -> FileMetadata:
     """
     Store file in Redis.
@@ -131,7 +132,7 @@ async def store_file(
     Returns:
         FileMetadata object with all file info
     """
-    file_id = generate_file_id()
+    file_id = file_id or generate_file_id()
     now = datetime.now(timezone.utc)
     
     # create metadata object (validate data by pydantic config defined in schemas)

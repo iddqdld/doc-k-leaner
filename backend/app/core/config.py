@@ -5,6 +5,8 @@ class Settings(BaseSettings):
     """Application settings."""
 
     redis_url: str = "redis://redis:6379"
+    postgres_url: str = "postgresql://dockcleaner:dockcleaner@postgres:5432/dockcleaner"
+    storage_dir: str = "data/storage"
     
     max_file_size_mb: int = 20
     max_file_size_bytes: int = 20 * 1024 * 1024  # 20MB comme bytes

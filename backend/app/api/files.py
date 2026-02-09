@@ -16,6 +16,7 @@ from fastapi.responses import Response
 from redis import asyncio as aioredis
 
 from app.core.config import settings
+from app.db.postgres import get_db
 from app.schemas.filesupload import (
     FileFromURLRequest,
     FileUploadResponse,
@@ -23,6 +24,8 @@ from app.schemas.filesupload import (
     FileContentResponse,
     ErrorResponse,
 )
+from app.schemas.admin import AdminFileRecord
+from app.services.db_service import insert_file_record, list_file_records
 from app.services.file_service import (
     validate_file,
     store_file,
@@ -32,7 +35,9 @@ from app.services.file_service import (
     FileTooLargeError,
     InvalidFileTypeError,
     FileNotFoundError,
+    generate_file_id,
 )
+from app.services.storage_service import save_file_to_disk, delete_file_from_disk
 
 # setup example @router.post("/upload") -> POST /api/files/upload
 router = APIRouter(
@@ -103,6 +108,7 @@ async def get_redis() -> aioredis.Redis:
 async def upload_file(
     file: UploadFile = File(...), # multipart parsing by fastapi eg returns orginal filename docker-compose.yaml
     redis: aioredis.Redis = Depends(get_redis), # depends to call get_redis() before the function and cleanup (finally:) after function returns
+    db = Depends(get_db),
 ):
     """
     Upload a file via drag & drop or file picker.
@@ -127,14 +133,25 @@ async def upload_file(
     except InvalidFileTypeError as e:
         raise HTTPException(status_code=400, detail=str(e))
     
-    # store in Redis
-    metadata = await store_file(
-        redis=redis,
-        filename=file.filename or "unknown",
-        content=content,
-        content_type=file.content_type or "application/octet-stream",
-        source="upload",
-    )
+    file_id = generate_file_id()
+    storage_path = None
+    metadata = None
+    try:
+        storage_path = save_file_to_disk(file_id, file.filename or "unknown", content)
+        metadata = await store_file(
+            redis=redis,
+            filename=file.filename or "unknown",
+            content=content,
+            content_type=file.content_type or "application/octet-stream",
+            source="upload",
+            file_id=file_id,
+        )
+        await insert_file_record(db, metadata, storage_path)
+    except Exception as exc:
+        if metadata is not None:
+            await delete_file(redis, metadata.file_id)
+        delete_file_from_disk(storage_path)
+        raise HTTPException(status_code=500, detail=f"Failed to store file: {exc}")
     
     # return response
     return FileUploadResponse(
@@ -161,6 +178,7 @@ async def upload_file(
 async def upload_from_url(
     request: FileFromURLRequest,
     redis: aioredis.Redis = Depends(get_redis),
+    db = Depends(get_db),
 ):
     """
     Fetch a file from a URL and store it.
@@ -217,15 +235,26 @@ async def upload_from_url(
     except InvalidFileTypeError as e:
         raise HTTPException(status_code=400, detail=str(e))
     
-    # store in Redis
-    metadata = await store_file(
-        redis=redis,
-        filename=filename,
-        content=content,
-        content_type=content_type,
-        source="url",
-        original_url=original_url,
-    )
+    file_id = generate_file_id()
+    storage_path = None
+    metadata = None
+    try:
+        storage_path = save_file_to_disk(file_id, filename, content)
+        metadata = await store_file(
+            redis=redis,
+            filename=filename,
+            content=content,
+            content_type=content_type,
+            source="url",
+            original_url=original_url,
+            file_id=file_id,
+        )
+        await insert_file_record(db, metadata, storage_path)
+    except Exception as exc:
+        if metadata is not None:
+            await delete_file(redis, metadata.file_id)
+        delete_file_from_disk(storage_path)
+        raise HTTPException(status_code=500, detail=f"Failed to store file: {exc}")
     
     return FileUploadResponse(
         file_id=metadata.file_id,
@@ -310,3 +339,16 @@ async def delete_stored_file(
         raise HTTPException(status_code=404, detail=f"File '{file_id}' not found")
     
     return {"message": "File deleted successfully", "file_id": file_id}
+
+
+@router.get(
+    "/admin/files",
+    response_model=list[AdminFileRecord],
+    summary="List stored files (admin)",
+    description="Return recent file records from Postgres",
+)
+async def list_admin_files(
+    limit: int = 50,
+    db = Depends(get_db),
+):
+    return await list_file_records(db, limit=limit)
