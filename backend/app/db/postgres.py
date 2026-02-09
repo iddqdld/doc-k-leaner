@@ -17,9 +17,9 @@ async def init_db() -> None:
     conn = await psycopg.AsyncConnection.connect(settings.postgres_url)
     try:
         async with conn.cursor() as cur:
-            await cur.execute(
+            await cur.execute( ## file uploads stored here
                 """
-                CREATE TABLE IF NOT EXISTS files (
+                CREATE TABLE IF NOT EXISTS files (  
                     id UUID PRIMARY KEY,
                     filename TEXT NOT NULL,
                     content_type TEXT NOT NULL,
@@ -27,6 +27,19 @@ async def init_db() -> None:
                     source TEXT NOT NULL CHECK (source IN ('upload', 'url')),
                     original_url TEXT,
                     storage_path TEXT NOT NULL,
+                    created_at TIMESTAMPTZ NOT NULL
+                )
+                """
+            )
+            await cur.execute(  ## scan results table 
+                """
+                CREATE TABLE IF NOT EXISTS scan_results (
+                    id UUID PRIMARY KEY,
+                    file_id UUID NOT NULL REFERENCES files(id) ON DELETE CASCADE,
+                    scanner TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    summary_json JSONB NOT NULL,
+                    raw_output_path TEXT NOT NULL,
                     created_at TIMESTAMPTZ NOT NULL
                 )
                 """

@@ -3,6 +3,17 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, HttpUrl, Field
 
+
+class ScanSummary(BaseModel):
+    status: str
+    total: int
+    critical: int
+    high: int
+    medium: int
+    low: int
+    unknown: int
+    error: str | None = None
+
 class FileFromURLRequest(BaseModel):
     """Request body for fetching a file from URL."""
     
@@ -42,6 +53,14 @@ class FileUploadResponse(BaseModel):
     uploaded_at: datetime = Field(
         ...,
         description="Timestamp when file was stored"
+    )
+    scan_summary: ScanSummary | None = Field(
+        default=None,
+        description="Trivy scan summary (if available)"
+    )
+    scan_report_url: str | None = Field(
+        default=None,
+        description="URL to the full scan JSON report"
     )
 
 

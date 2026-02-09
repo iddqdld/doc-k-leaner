@@ -10,8 +10,11 @@ Routes:
 """
 
 import httpx
+import json
+import os
+from datetime import datetime, timezone
 from urllib.parse import urlparse, urlunparse
-from fastapi import APIRouter, File, HTTPException, UploadFile, Depends
+from fastapi import APIRouter, File, HTTPException, UploadFile, Depends, Request
 from fastapi.responses import Response
 from redis import asyncio as aioredis
 
@@ -25,7 +28,7 @@ from app.schemas.filesupload import (
     ErrorResponse,
 )
 from app.schemas.admin import AdminFileRecord
-from app.services.db_service import insert_file_record, list_file_records
+from app.services.db_service import insert_file_record, list_file_records, insert_scan_result
 from app.services.file_service import (
     validate_file,
     store_file,
@@ -38,6 +41,7 @@ from app.services.file_service import (
     generate_file_id,
 )
 from app.services.storage_service import save_file_to_disk, delete_file_from_disk
+from app.services.scan_service import run_trivy_scan, build_scan_output_path
 
 # setup example @router.post("/upload") -> POST /api/files/upload
 router = APIRouter(
@@ -106,6 +110,7 @@ async def get_redis() -> aioredis.Redis:
     description="Upload a file via multipart form (drag & drop)",
 )
 async def upload_file(
+    request: Request,
     file: UploadFile = File(...), # multipart parsing by fastapi eg returns orginal filename docker-compose.yaml
     redis: aioredis.Redis = Depends(get_redis), # depends to call get_redis() before the function and cleanup (finally:) after function returns
     db = Depends(get_db),
@@ -136,6 +141,7 @@ async def upload_file(
     file_id = generate_file_id()
     storage_path = None
     metadata = None
+    scan_summary = None
     try:
         storage_path = save_file_to_disk(file_id, file.filename or "unknown", content)
         metadata = await store_file(
@@ -147,6 +153,47 @@ async def upload_file(
             file_id=file_id,
         )
         await insert_file_record(db, metadata, storage_path)
+        try:
+            scan_summary, output_path, scan_status, scan_created_at = await run_trivy_scan(
+                file_id,
+                storage_path,
+            )
+            await insert_scan_result(
+                db,
+                file_id=file_id,
+                scanner="trivy",
+                status=scan_status,
+                summary=scan_summary,
+                raw_output_path=output_path,
+                created_at=scan_created_at,
+            )
+        except Exception as exc:
+            output_path = build_scan_output_path(file_id)
+            scan_summary = {
+                "status": "failed",
+                "total": 0,
+                "critical": 0,
+                "high": 0,
+                "medium": 0,
+                "low": 0,
+                "unknown": 0,
+                "error": str(exc),
+            }
+            try:
+                os.makedirs(os.path.dirname(output_path), exist_ok=True)
+                with open(output_path, "w", encoding="utf-8") as handle:
+                    json.dump({"error": str(exc)}, handle)
+                await insert_scan_result(
+                    db,
+                    file_id=file_id,
+                    scanner="trivy",
+                    status="failed",
+                    summary=scan_summary,
+                    raw_output_path=output_path,
+                    created_at=datetime.now(timezone.utc),
+                )
+            except Exception:
+                pass
     except Exception as exc:
         if metadata is not None:
             await delete_file(redis, metadata.file_id)
@@ -161,6 +208,8 @@ async def upload_file(
         content_type=metadata.content_type,
         source=metadata.source,
         uploaded_at=metadata.uploaded_at,
+        scan_summary=scan_summary,
+        scan_report_url=str(request.url_for("get_scan_report", file_id=metadata.file_id)),
     )
 
 # url upload
@@ -176,7 +225,8 @@ async def upload_file(
     description="Fetch a file from a URL and store it",
 )
 async def upload_from_url(
-    request: FileFromURLRequest,
+    request: Request,
+    payload: FileFromURLRequest,
     redis: aioredis.Redis = Depends(get_redis),
     db = Depends(get_db),
 ):
@@ -188,7 +238,7 @@ async def upload_from_url(
     - Checks file size (max 20MB)
     - Stores in Redis with unique ID
     """
-    original_url = str(request.url)
+    original_url = str(payload.url)
     fetch_url = normalize_source_url(original_url)
     
     # fetch file from URL
@@ -238,6 +288,7 @@ async def upload_from_url(
     file_id = generate_file_id()
     storage_path = None
     metadata = None
+    scan_summary = None
     try:
         storage_path = save_file_to_disk(file_id, filename, content)
         metadata = await store_file(
@@ -250,6 +301,47 @@ async def upload_from_url(
             file_id=file_id,
         )
         await insert_file_record(db, metadata, storage_path)
+        try:
+            scan_summary, output_path, scan_status, scan_created_at = await run_trivy_scan(
+                file_id,
+                storage_path,
+            )
+            await insert_scan_result(
+                db,
+                file_id=file_id,
+                scanner="trivy",
+                status=scan_status,
+                summary=scan_summary,
+                raw_output_path=output_path,
+                created_at=scan_created_at,
+            )
+        except Exception as exc:
+            output_path = build_scan_output_path(file_id)
+            scan_summary = {
+                "status": "failed",
+                "total": 0,
+                "critical": 0,
+                "high": 0,
+                "medium": 0,
+                "low": 0,
+                "unknown": 0,
+                "error": str(exc),
+            }
+            try:
+                os.makedirs(os.path.dirname(output_path), exist_ok=True)
+                with open(output_path, "w", encoding="utf-8") as handle:
+                    json.dump({"error": str(exc)}, handle)
+                await insert_scan_result(
+                    db,
+                    file_id=file_id,
+                    scanner="trivy",
+                    status="failed",
+                    summary=scan_summary,
+                    raw_output_path=output_path,
+                    created_at=datetime.now(timezone.utc),
+                )
+            except Exception:
+                pass
     except Exception as exc:
         if metadata is not None:
             await delete_file(redis, metadata.file_id)
@@ -263,6 +355,8 @@ async def upload_from_url(
         content_type=metadata.content_type,
         source=metadata.source,
         uploaded_at=metadata.uploaded_at,
+        scan_summary=scan_summary,
+        scan_report_url=str(request.url_for("get_scan_report", file_id=metadata.file_id)),
     )
 
 # get metadata
@@ -342,13 +436,39 @@ async def delete_stored_file(
 
 
 @router.get(
+    "/{file_id}/scan",
+    name="get_scan_report",
+    responses={
+        200: {
+            "content": {"application/json": {}},
+            "description": "Trivy scan JSON report",
+        },
+        404: {"model": ErrorResponse, "description": "Scan report not found"},
+    },
+    summary="Download scan report",
+    description="Download the raw Trivy scan JSON for a file",
+)
+async def get_scan_report(file_id: str):
+    path = build_scan_output_path(file_id)
+    if not os.path.exists(path):
+        raise HTTPException(status_code=404, detail="Scan report not found")
+    with open(path, "rb") as handle:
+        content = handle.read()
+    return Response(content=content, media_type="application/json")
+
+
+@router.get(
     "/admin/files",
     response_model=list[AdminFileRecord],
     summary="List stored files (admin)",
     description="Return recent file records from Postgres",
 )
 async def list_admin_files(
+    request: Request,
     limit: int = 50,
     db = Depends(get_db),
 ):
-    return await list_file_records(db, limit=limit)
+    records = await list_file_records(db, limit=limit)
+    for record in records:
+        record.scan_report_url = str(request.url_for("get_scan_report", file_id=record.id))
+    return records
