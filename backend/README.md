@@ -31,3 +31,10 @@ added links normalisation for github and gitlab.
 
 schemas/admin.py 
 admin dashboard api
+
+db --> is postgre init
+
+added storage service and db service files in ./services 
+they are additional files to connect postgre storage
+
++ psycopg[binary] in requirements so we can talk with our db.
