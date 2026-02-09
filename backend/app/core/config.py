@@ -9,6 +9,8 @@ class Settings(BaseSettings):
     storage_dir: str = "data/storage"
     scan_dir: str = "data/scans"
     docker_cli_path: str = "/usr/bin/docker"
+    github_repo: str = "iddqdld/doc-k-leaner"
+    github_branch: str = "dev"
     
     max_file_size_mb: int = 20
     max_file_size_bytes: int = 20 * 1024 * 1024  # 20MB comme bytes

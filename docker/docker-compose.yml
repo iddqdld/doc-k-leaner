@@ -24,6 +24,8 @@ services:
       - DOCKCLEANER_POSTGRES_URL=postgresql://dockcleaner:dockcleaner@postgres:5432/dockcleaner
       - DOCKCLEANER_STORAGE_DIR=/app/data/storage
       - DOCKCLEANER_SCAN_DIR=/app/data/scans
+      - DOCKCLEANER_GITHUB_REPO=iddqdld/doc-k-leaner
+      - DOCKCLEANER_GITHUB_BRANCH=dev
     volumes:
       - ./data/storage:/app/data/storage
       - ./data/scans:/app/data/scans
