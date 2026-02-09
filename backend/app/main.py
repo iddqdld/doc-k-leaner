@@ -7,6 +7,8 @@ from fastapi_cache.backends.redis import RedisBackend
 from redis import asyncio as aioredis
 
 from app.api.files import router as files_router
+from app.api.news import router as news_router
+from app.api.news import router as news_router
 from app.db.postgres import init_db
 from app.core.config import settings
 
@@ -45,6 +47,8 @@ app.add_middleware(
 
 # Include routers
 app.include_router(files_router)
+app.include_router(news_router)
+app.include_router(news_router)
 
 
 @app.get("/")

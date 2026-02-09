@@ -50,6 +50,20 @@ export interface AdminFileRecord {
 export interface ApiError {
   detail: string;
 }
+
+export interface CommitInfo {
+  sha: string;
+  short_sha: string;
+  message: string;
+  date: string;
+}
+
+export interface CommitInfo {
+  sha: string;
+  short_sha: string;
+  message: string;
+  date: string;
+}
 // api functions 
 
 // drag&drop upload
@@ -119,6 +133,17 @@ export async function getAdminFiles(limit = 50): Promise<AdminFileRecord[]> {
   if (!response.ok) {
     const error: ApiError = await response.json();
     throw new Error(error.detail || `Failed to list files: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+export async function getLatestCommits(limit = 3): Promise<CommitInfo[]> {
+  const response = await fetch(`${API_BASE_URL}/api/news/commits?limit=${limit}`);
+
+  if (!response.ok) {
+    const error: ApiError = await response.json();
+    throw new Error(error.detail || `Failed to load commits: ${response.status}`);
   }
 
   return response.json();

@@ -1,5 +1,5 @@
-import React, { useState, useRef, DragEvent } from 'react';
-import { uploadFile, uploadFromUrl, FileUploadResponse } from '../services/fileApi';
+import React, { useState, useRef, DragEvent, useEffect } from 'react';
+import { uploadFile, uploadFromUrl, FileUploadResponse, getLatestCommits, CommitInfo } from '../services/fileApi';
 
 const Scanner: React.FC = () => {
   // Form state
@@ -13,9 +13,33 @@ const Scanner: React.FC = () => {
   const [uploadedFile, setUploadedFile] = useState<FileUploadResponse | null>(null);
   const [scanReport, setScanReport] = useState<any | null>(null);
   const [scanReportError, setScanReportError] = useState<string | null>(null);
+  const [commits, setCommits] = useState<CommitInfo[]>([]);
+  const [commitError, setCommitError] = useState<string | null>(null);
   
   // Hidden file input ref (for click to upload)
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadCommits = async () => {
+      setCommitError(null);
+      try {
+        const data = await getLatestCommits(3);
+        if (isMounted) {
+          setCommits(data);
+        }
+      } catch (err) {
+        if (isMounted) {
+          setCommitError(err instanceof Error ? err.message : 'Failed to load updates');
+        }
+      }
+    };
+
+    loadCommits();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
   
   const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -149,6 +173,12 @@ const Scanner: React.FC = () => {
   const scanRows = Array.isArray(scanReport?.Results)
     ? scanReport.Results.flatMap((result: any) => result.Misconfigurations || [])
     : [];
+
+  const formatCommitDate = (value: string): string => {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleDateString();
+  };
 
   return (
     <div className="w-full space-y-8 animate-in fade-in duration-700">
@@ -361,19 +391,24 @@ const Scanner: React.FC = () => {
           <h3 className="text-gray-600 font-medium border-b border-gray-50 pb-3">Versions et Mises à Jour</h3>
           
           <div className="space-y-4">
-            <div className="space-y-1">
-              <p className="text-xs text-gray-700 leading-relaxed">
-                Il y aura des mises à jour et des nouvelles ici
-              </p>
-              <p className="text-[10px] text-gray-400">Mars 31, 2025</p>
-            </div>
+            {commitError && (
+              <div className="text-xs text-red-500">{commitError}</div>
+            )}
 
-            <div className="space-y-1">
-              <p className="text-xs text-gray-700 leading-relaxed">
-                L'application termine la phase de test bêta!
-              </p>
-              <p className="text-[10px] text-gray-400">October 24, 2024</p>
-            </div>
+            {!commitError && commits.length === 0 && (
+              <div className="text-xs text-gray-500">No updates yet.</div>
+            )}
+
+            {commits.map((commit) => (
+              <div key={commit.sha} className="space-y-1">
+                <p className="text-xs text-gray-700 leading-relaxed">
+                  {commit.message}
+                </p>
+                <p className="text-[10px] text-gray-400">
+                  {formatCommitDate(commit.date)} · {commit.short_sha}
+                </p>
+              </div>
+            ))}
 
             <div className="pt-2 text-center">
               <button className="text-[#ff9d24] text-xs font-bold hover:underline">
