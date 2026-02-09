@@ -26,3 +26,8 @@ So, we are using pipeline method to send both parts toghether to our redis serve
 ---
 api/files.py
 pretty selfexplanatory, better to check the file to get more info
+
+added links normalisation for github and gitlab. 
+
+schemas/admin.py 
+admin dashboard api
