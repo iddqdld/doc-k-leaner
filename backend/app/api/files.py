@@ -10,6 +10,7 @@ Routes:
 """
 
 import httpx
+from urllib.parse import urlparse, urlunparse
 from fastapi import APIRouter, File, HTTPException, UploadFile, Depends
 from fastapi.responses import Response
 from redis import asyncio as aioredis
@@ -38,6 +39,40 @@ router = APIRouter(
     prefix="/api/files",
     tags=["files"],  # groups endpoints in /docs
 )
+
+def normalize_source_url(url: str) -> str:
+    parsed = urlparse(url)
+    host = parsed.netloc.lower()
+    path = parsed.path
+
+    if host in {"github.com", "www.github.com"} and "/blob/" in path:
+        parts = path.strip("/").split("/")
+        if "blob" in parts:
+            idx = parts.index("blob")
+            if idx >= 2 and idx + 1 < len(parts):
+                owner = parts[0]
+                repo = parts[1]
+                branch = parts[idx + 1]
+                file_path = "/".join(parts[idx + 2 :])
+                if file_path:
+                    raw_path = f"/{owner}/{repo}/{branch}/{file_path}"
+                    return urlunparse(("https", "raw.githubusercontent.com", raw_path, "", "", ""))
+
+    if host.endswith("gitlab.com") and "/-/blob/" in path:
+        parts = path.strip("/").split("/")
+        if "blob" in parts:
+            idx = parts.index("blob")
+            if idx >= 1 and parts[idx - 1] == "-" and idx + 1 < len(parts):
+                owner_repo = parts[: idx - 1]
+                if len(owner_repo) >= 2:
+                    branch = parts[idx + 1]
+                    file_path = "/".join(parts[idx + 2 :])
+                    if file_path:
+                        raw_path = "/" + "/".join(owner_repo) + "/-/raw/" + branch + "/" + file_path
+                        scheme = parsed.scheme or "https"
+                        return urlunparse((scheme, parsed.netloc, raw_path, "", "", ""))
+
+    return url
 
 # apres pour propre code production il faut implementer le system de connexion automatic, serait moins de connect request -> more optimal
 async def get_redis() -> aioredis.Redis:
@@ -135,13 +170,14 @@ async def upload_from_url(
     - Checks file size (max 20MB)
     - Stores in Redis with unique ID
     """
-    url = str(request.url)
+    original_url = str(request.url)
+    fetch_url = normalize_source_url(original_url)
     
     # fetch file from URL
     try:
         async with httpx.AsyncClient() as client:
             response = await client.get(
-                url,
+                fetch_url,
                 follow_redirects=True,
                 timeout=30.0,
             )
@@ -158,7 +194,7 @@ async def upload_from_url(
         )
     
     # extract filename from URL
-    filename = url.split("/")[-1].split("?")[0]  # Remove query params
+    filename = fetch_url.split("/")[-1].split("?")[0]  # Remove query params
     if not filename:
         filename = "downloaded_file"
     
@@ -188,7 +224,7 @@ async def upload_from_url(
         content=content,
         content_type=content_type,
         source="url",
-        original_url=url,
+        original_url=original_url,
     )
     
     return FileUploadResponse(
