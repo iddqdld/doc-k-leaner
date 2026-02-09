@@ -23,8 +23,11 @@ services:
       - DOCKCLEANER_REDIS_URL=redis://redis:6379
       - DOCKCLEANER_POSTGRES_URL=postgresql://dockcleaner:dockcleaner@postgres:5432/dockcleaner
       - DOCKCLEANER_STORAGE_DIR=/app/data/storage
+      - DOCKCLEANER_SCAN_DIR=/app/data/scans
     volumes:
       - ./data/storage:/app/data/storage
+      - ./data/scans:/app/data/scans
+      - /var/run/docker.sock:/var/run/docker.sock
 
   redis:
     image: redis:7-alpine
@@ -45,5 +48,12 @@ services:
     restart: unless-stopped
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
+
+  trivy:
+    image: aquasec/trivy:0.69.1
+    container_name: trivy
+    entrypoint: ["sh", "-c", "sleep infinity"]
+    volumes:
+      - ./data/storage:/data/storage
 
 volumes: {}
