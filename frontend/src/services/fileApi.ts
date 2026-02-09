@@ -11,6 +11,17 @@ export interface FileUploadResponse {
   content_type: string;
   source: 'upload' | 'url';
   uploaded_at: string;
+  scan_summary?: {
+    status: string;
+    total: number;
+    critical: number;
+    high: number;
+    medium: number;
+    low: number;
+    unknown: number;
+    error?: string | null;
+  } | null;
+  scan_report_url?: string | null;
 }
 
 export interface AdminFileRecord {
@@ -22,6 +33,18 @@ export interface AdminFileRecord {
   original_url?: string | null;
   storage_path: string;
   created_at: string;
+  scan_status?: string | null;
+  scan_summary?: {
+    status: string;
+    total: number;
+    critical: number;
+    high: number;
+    medium: number;
+    low: number;
+    unknown: number;
+    error?: string | null;
+  } | null;
+  scan_report_url?: string | null;
 }
 
 export interface ApiError {

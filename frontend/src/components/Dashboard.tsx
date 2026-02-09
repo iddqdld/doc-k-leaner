@@ -50,6 +50,11 @@ const Dashboard: React.FC<DashboardProps> = ({ onGoToDashboard }) => {
     return date.toLocaleString();
   };
 
+  const formatScanSummary = (file: AdminFileRecord): string => {
+    if (!file.scan_summary) return '—';
+    return `C:${file.scan_summary.critical} H:${file.scan_summary.high} M:${file.scan_summary.medium} L:${file.scan_summary.low} U:${file.scan_summary.unknown}`;
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500 w-full">
       <div className="flex items-center justify-between">
@@ -85,6 +90,9 @@ const Dashboard: React.FC<DashboardProps> = ({ onGoToDashboard }) => {
                 <th className="px-6 py-3">Source</th>
                 <th className="px-6 py-3">Size</th>
                 <th className="px-6 py-3">Content Type</th>
+                <th className="px-6 py-3">Scan Status</th>
+                <th className="px-6 py-3">Scan Summary</th>
+                <th className="px-6 py-3">Report</th>
                 <th className="px-6 py-3">Created At</th>
               </tr>
             </thead>
@@ -106,19 +114,35 @@ const Dashboard: React.FC<DashboardProps> = ({ onGoToDashboard }) => {
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-700">{formatFileSize(file.size)}</td>
                   <td className="px-6 py-4 text-sm text-gray-700">{file.content_type}</td>
+                  <td className="px-6 py-4 text-sm text-gray-700">{file.scan_status || '—'}</td>
+                  <td className="px-6 py-4 text-sm text-gray-700">{formatScanSummary(file)}</td>
+                  <td className="px-6 py-4 text-sm text-gray-700">
+                    {file.scan_report_url ? (
+                      <a
+                        href={file.scan_report_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-indigo-600 hover:underline"
+                      >
+                        JSON
+                      </a>
+                    ) : (
+                      '—'
+                    )}
+                  </td>
                   <td className="px-6 py-4 text-sm text-gray-500">{formatDate(file.created_at)}</td>
                 </tr>
               ))}
               {!isLoading && files.length === 0 && (
                 <tr>
-                  <td className="px-6 py-6 text-sm text-gray-500" colSpan={5}>
+                  <td className="px-6 py-6 text-sm text-gray-500" colSpan={8}>
                     No files stored yet.
                   </td>
                 </tr>
               )}
               {isLoading && (
                 <tr>
-                  <td className="px-6 py-6 text-sm text-gray-500" colSpan={5}>
+                  <td className="px-6 py-6 text-sm text-gray-500" colSpan={8}>
                     Loading files...
                   </td>
                 </tr>
