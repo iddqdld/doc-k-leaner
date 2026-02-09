@@ -13,6 +13,17 @@ export interface FileUploadResponse {
   uploaded_at: string;
 }
 
+export interface AdminFileRecord {
+  id: string;
+  filename: string;
+  content_type: string;
+  size: number;
+  source: 'upload' | 'url';
+  original_url?: string | null;
+  storage_path: string;
+  created_at: string;
+}
+
 export interface ApiError {
   detail: string;
 }
@@ -77,4 +88,15 @@ export async function deleteFile(fileId: string): Promise<void> {
     const error: ApiError = await response.json();
     throw new Error(error.detail || `Failed to delete file: ${response.status}`);
   }
+}
+
+export async function getAdminFiles(limit = 50): Promise<AdminFileRecord[]> {
+  const response = await fetch(`${API_BASE_URL}/api/files/admin/files?limit=${limit}`);
+
+  if (!response.ok) {
+    const error: ApiError = await response.json();
+    throw new Error(error.detail || `Failed to list files: ${response.status}`);
+  }
+
+  return response.json();
 }
