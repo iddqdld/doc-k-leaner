@@ -11,6 +11,8 @@ const Scanner: React.FC = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [uploadedFile, setUploadedFile] = useState<FileUploadResponse | null>(null);
+  const [scanReport, setScanReport] = useState<any | null>(null);
+  const [scanReportError, setScanReportError] = useState<string | null>(null);
   
   // Hidden file input ref (for click to upload)
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -55,10 +57,24 @@ const Scanner: React.FC = () => {
     setIsUploading(true);
     setError(null);
     setUploadedFile(null);
+    setScanReport(null);
+    setScanReportError(null);
 
     try {
       const result = await uploadFile(file);
       setUploadedFile(result);
+      if (result.scan_report_url) {
+        try {
+          const response = await fetch(result.scan_report_url);
+          if (!response.ok) {
+            throw new Error(`Failed to load scan report: ${response.status}`);
+          }
+          const data = await response.json();
+          setScanReport(data);
+        } catch (err) {
+          setScanReportError(err instanceof Error ? err.message : 'Failed to load scan report');
+        }
+      }
       console.log('File uploaded:', result);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed');
@@ -76,10 +92,24 @@ const Scanner: React.FC = () => {
     setIsUploading(true);
     setError(null);
     setUploadedFile(null);
+    setScanReport(null);
+    setScanReportError(null);
 
     try {
       const result = await uploadFromUrl(url);
       setUploadedFile(result);
+      if (result.scan_report_url) {
+        try {
+          const response = await fetch(result.scan_report_url);
+          if (!response.ok) {
+            throw new Error(`Failed to load scan report: ${response.status}`);
+          }
+          const data = await response.json();
+          setScanReport(data);
+        } catch (err) {
+          setScanReportError(err instanceof Error ? err.message : 'Failed to load scan report');
+        }
+      }
       setUrl(''); // Clear input on success
       console.log('File fetched from URL:', result);
     } catch (err) {
@@ -101,6 +131,25 @@ const Scanner: React.FC = () => {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
+  const getSeverityClass = (severity?: string): string => {
+    switch ((severity || '').toUpperCase()) {
+      case 'CRITICAL':
+        return 'text-red-600';
+      case 'HIGH':
+        return 'text-orange-500';
+      case 'MEDIUM':
+        return 'text-amber-500';
+      case 'LOW':
+        return 'text-emerald-500';
+      default:
+        return 'text-gray-500';
+    }
+  };
+
+  const scanRows = Array.isArray(scanReport?.Results)
+    ? scanReport.Results.flatMap((result: any) => result.Misconfigurations || [])
+    : [];
+
   return (
     <div className="w-full space-y-8 animate-in fade-in duration-700">
       {/* Header Title */}
@@ -108,10 +157,10 @@ const Scanner: React.FC = () => {
         <h1 className="text-4xl font-black text-[#5d2e8e] tracking-tight">Doc(k)leaner</h1>
       </div>
 
-      <div className="flex flex-col lg:flex-row items-start justify-center gap-8 max-w-6xl mx-auto">
+      <div className="flex flex-col lg:flex-row items-start justify-center gap-8 max-w-7xl mx-auto">
         
         {/* Main Analysis Panel */}
-        <div className="w-full lg:w-[650px] space-y-0">
+        <div className="w-full lg:flex-1 space-y-0">
           {/* Sub-Tabs */}
           <div className="flex items-center gap-4 px-4 mb-2">
             <button 
@@ -149,6 +198,32 @@ const Scanner: React.FC = () => {
                   <p><span className="text-green-300">Filename:</span> {uploadedFile.filename}</p>
                   <p><span className="text-green-300">Size:</span> {formatFileSize(uploadedFile.size)}</p>
                   <p><span className="text-green-300">ID:</span> <code className="bg-black/20 px-1 rounded">{uploadedFile.file_id}</code></p>
+                  {uploadedFile.scan_summary && (
+                    <div className="mt-2 text-xs text-green-100">
+                      <div className="font-semibold text-green-200">Scan summary</div>
+                      <div>Total: {uploadedFile.scan_summary.total}</div>
+                      <div>
+                        Critical: {uploadedFile.scan_summary.critical} · High: {uploadedFile.scan_summary.high} ·
+                        Medium: {uploadedFile.scan_summary.medium} · Low: {uploadedFile.scan_summary.low} ·
+                        Unknown: {uploadedFile.scan_summary.unknown}
+                      </div>
+                      {uploadedFile.scan_summary.error && (
+                        <div className="text-red-200">Scan error: {uploadedFile.scan_summary.error}</div>
+                      )}
+                    </div>
+                  )}
+                  {uploadedFile.scan_report_url && (
+                    <div className="mt-2">
+                      <a
+                        href={uploadedFile.scan_report_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-green-200 underline text-xs"
+                      >
+                        View full scan JSON
+                      </a>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -234,6 +309,51 @@ const Scanner: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {scanReportError && (
+            <div className="mt-6 w-full bg-red-500/10 border border-red-400/40 rounded px-4 py-3 text-sm text-red-700">
+              {scanReportError}
+            </div>
+          )}
+
+          {scanRows.length > 0 && (
+            <div className="mt-6 w-full rounded-xl border border-[#5d2e8e]/20 bg-[#5d2e8e]/5 shadow-sm overflow-hidden">
+              <div className="p-5 border-b border-[#5d2e8e]/20 flex items-center justify-between bg-[#5d2e8e] text-white">
+                <h3 className="font-semibold">Scan Results</h3>
+                <span className="text-xs text-white/80">{scanRows.length} findings</span>
+              </div>
+              <div className="overflow-x-auto bg-white">
+                <table className="w-full text-left text-sm">
+                  <thead className="text-xs uppercase text-[#5d2e8e] font-semibold border-b border-gray-100">
+                    <tr>
+                      <th className="px-5 py-3">Severity</th>
+                      <th className="px-5 py-3">ID</th>
+                      <th className="px-5 py-3">Title</th>
+                      <th className="px-5 py-3">Status</th>
+                      <th className="px-5 py-3">Location</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {scanRows.map((item: any, index: number) => (
+                      <tr key={`${item.ID || 'row'}-${index}`} className="hover:bg-[#5d2e8e]/5 transition-colors">
+                        <td className={`px-5 py-3 font-semibold ${getSeverityClass(item.Severity)}`}>
+                          {item.Severity || 'UNKNOWN'}
+                        </td>
+                        <td className="px-5 py-3 text-gray-700">{item.ID}</td>
+                        <td className="px-5 py-3 text-gray-700">{item.Title}</td>
+                        <td className="px-5 py-3 text-gray-700">{item.Status}</td>
+                        <td className="px-5 py-3 text-gray-500">
+                          {item?.CauseMetadata?.StartLine
+                            ? `Line ${item.CauseMetadata.StartLine}`
+                            : '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Sidebar Widget */}
