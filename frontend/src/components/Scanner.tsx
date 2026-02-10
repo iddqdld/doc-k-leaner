@@ -1,5 +1,5 @@
 import React, { useState, useRef, DragEvent, useEffect } from 'react';
-import { uploadFile, uploadFromUrl, FileUploadResponse, getLatestCommits, CommitInfo } from '../services/fileApi';
+import { uploadFile, uploadFromUrl, scanImage, FileUploadResponse, ImageScanResponse, getLatestCommits, CommitInfo } from '../services/fileApi';
 
 const Scanner: React.FC = () => {
   // Form state
@@ -13,6 +13,9 @@ const Scanner: React.FC = () => {
   const [uploadedFile, setUploadedFile] = useState<FileUploadResponse | null>(null);
   const [scanReport, setScanReport] = useState<any | null>(null);
   const [scanReportError, setScanReportError] = useState<string | null>(null);
+  const [imageRef, setImageRef] = useState('');
+  const [imageScanResult, setImageScanResult] = useState<ImageScanResponse | null>(null);
+  const [activeAction, setActiveAction] = useState<'upload' | 'image' | null>(null);
   const [commits, setCommits] = useState<CommitInfo[]>([]);
   const [commitError, setCommitError] = useState<string | null>(null);
   
@@ -79,10 +82,12 @@ const Scanner: React.FC = () => {
 
   const handleFileUpload = async (file: File) => {
     setIsUploading(true);
+    setActiveAction('upload');
     setError(null);
     setUploadedFile(null);
     setScanReport(null);
     setScanReportError(null);
+    setImageScanResult(null);
 
     try {
       const result = await uploadFile(file);
@@ -104,6 +109,7 @@ const Scanner: React.FC = () => {
       setError(err instanceof Error ? err.message : 'Upload failed');
     } finally {
       setIsUploading(false);
+      setActiveAction(null);
     }
   };
 
@@ -114,10 +120,12 @@ const Scanner: React.FC = () => {
     }
 
     setIsUploading(true);
+    setActiveAction('upload');
     setError(null);
     setUploadedFile(null);
     setScanReport(null);
     setScanReportError(null);
+    setImageScanResult(null);
 
     try {
       const result = await uploadFromUrl(url);
@@ -140,6 +148,45 @@ const Scanner: React.FC = () => {
       setError(err instanceof Error ? err.message : 'Failed to fetch URL');
     } finally {
       setIsUploading(false);
+      setActiveAction(null);
+    }
+  };
+
+  const handleImageScan = async () => {
+    if (!imageRef.trim()) {
+      setError('Please enter an image reference');
+      return;
+    }
+
+    setIsUploading(true);
+    setActiveAction('image');
+    setError(null);
+    setUploadedFile(null);
+    setScanReport(null);
+    setScanReportError(null);
+    setImageScanResult(null);
+
+    try {
+      const result = await scanImage(imageRef.trim());
+      setImageScanResult(result);
+      if (result.scan_report_url) {
+        try {
+          const response = await fetch(result.scan_report_url);
+          if (!response.ok) {
+            throw new Error(`Failed to load scan report: ${response.status}`);
+          }
+          const data = await response.json();
+          setScanReport(data);
+        } catch (err) {
+          setScanReportError(err instanceof Error ? err.message : 'Failed to load scan report');
+        }
+      }
+      setImageRef('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Image scan failed');
+    } finally {
+      setIsUploading(false);
+      setActiveAction(null);
     }
   };
 
@@ -171,7 +218,33 @@ const Scanner: React.FC = () => {
   };
 
   const scanRows = Array.isArray(scanReport?.Results)
-    ? scanReport.Results.flatMap((result: any) => result.Misconfigurations || [])
+    ? scanReport.Results.flatMap((result: any) => {
+        const misconfigs = (result.Misconfigurations || []).map((item: any) => ({
+          kind: 'misconfig',
+          id: item.ID,
+          title: item.Title,
+          severity: item.Severity,
+          status: item.Status,
+          location: item?.CauseMetadata?.StartLine ? `Line ${item.CauseMetadata.StartLine}` : '—',
+        }));
+        const secrets = (result.Secrets || []).map((item: any) => ({
+          kind: 'secret',
+          id: item.RuleID || item.ID || 'SECRET',
+          title: item.Title || item.RuleID || 'Secret detected',
+          severity: item.Severity,
+          status: item?.Status || 'FAIL',
+          location: item?.StartLine ? `Line ${item.StartLine}` : '—',
+        }));
+        const vulns = (result.Vulnerabilities || []).map((item: any) => ({
+          kind: 'vuln',
+          id: item.VulnerabilityID || item.ID || 'VULN',
+          title: item.Title || item.PkgName || 'Vulnerability',
+          severity: item.Severity,
+          status: item.Status || 'FAIL',
+          location: item.PkgName ? `Pkg ${item.PkgName}` : '—',
+        }));
+        return [...misconfigs, ...secrets, ...vulns];
+      })
     : [];
 
   const formatCommitDate = (value: string): string => {
@@ -257,6 +330,39 @@ const Scanner: React.FC = () => {
                 </div>
               )}
 
+              {imageScanResult && (
+                <div className="w-full bg-green-500/20 border border-green-400/50 rounded px-4 py-3 text-green-200 text-sm text-left">
+                  <p className="font-bold mb-1">✓ Image scan completed!</p>
+                  <p><span className="text-green-300">Image:</span> {imageScanResult.image}</p>
+                  {imageScanResult.scan_summary && (
+                    <div className="mt-2 text-xs text-green-100">
+                      <div className="font-semibold text-green-200">Scan summary</div>
+                      <div>Total: {imageScanResult.scan_summary.total}</div>
+                      <div>
+                        Critical: {imageScanResult.scan_summary.critical} · High: {imageScanResult.scan_summary.high} ·
+                        Medium: {imageScanResult.scan_summary.medium} · Low: {imageScanResult.scan_summary.low} ·
+                        Unknown: {imageScanResult.scan_summary.unknown}
+                      </div>
+                      {imageScanResult.scan_summary.error && (
+                        <div className="text-red-200">Scan error: {imageScanResult.scan_summary.error}</div>
+                      )}
+                    </div>
+                  )}
+                  {imageScanResult.scan_report_url && (
+                    <div className="mt-2">
+                      <a
+                        href={imageScanResult.scan_report_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-green-200 underline text-xs"
+                      >
+                        View full scan JSON
+                      </a>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Drag & Drop Area */}
               <div 
                 onClick={handleDropZoneClick}
@@ -276,7 +382,9 @@ const Scanner: React.FC = () => {
                 {isUploading ? (
                   <>
                     <div className="animate-spin text-4xl mb-2">⚙️</div>
-                    <p className="text-white/80 text-sm font-medium">Uploading...</p>
+                    <p className="text-white/80 text-sm font-medium">
+                      {activeAction === 'image' ? 'Scanning...' : 'Uploading...'}
+                    </p>
                   </>
                 ) : (
                   <>
@@ -327,6 +435,26 @@ const Scanner: React.FC = () => {
                   {isUploading ? 'Loading...' : 'Analyser'}
                 </button>
               </div>
+
+              <div className="w-full flex items-stretch mt-3">
+                <div className="flex-1 relative">
+                  <input
+                    type="text"
+                    value={imageRef}
+                    onChange={(e) => setImageRef(e.target.value)}
+                    placeholder="nginx:latest or ghcr.io/org/app:tag"
+                    className="w-full h-11 px-4 py-2 text-sm bg-white rounded-l-sm outline-none text-gray-800 placeholder:text-gray-400 disabled:opacity-50"
+                    disabled={isUploading}
+                  />
+                </div>
+                <button
+                  onClick={handleImageScan}
+                  disabled={isUploading}
+                  className="bg-[#ff9d24] text-white px-6 font-bold text-xs rounded-r-sm hover:bg-[#e68a1f] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isUploading ? 'Loading...' : 'Scan Image'}
+                </button>
+              </div>
             </div>
 
             {/* Bottom info bar */}
@@ -356,6 +484,7 @@ const Scanner: React.FC = () => {
                 <table className="w-full text-left text-sm">
                   <thead className="text-xs uppercase text-[#5d2e8e] font-semibold border-b border-gray-100">
                     <tr>
+                      <th className="px-5 py-3">Type</th>
                       <th className="px-5 py-3">Severity</th>
                       <th className="px-5 py-3">ID</th>
                       <th className="px-5 py-3">Title</th>
@@ -366,17 +495,14 @@ const Scanner: React.FC = () => {
                   <tbody className="divide-y divide-gray-100">
                     {scanRows.map((item: any, index: number) => (
                       <tr key={`${item.ID || 'row'}-${index}`} className="hover:bg-[#5d2e8e]/5 transition-colors">
-                        <td className={`px-5 py-3 font-semibold ${getSeverityClass(item.Severity)}`}>
-                          {item.Severity || 'UNKNOWN'}
+                        <td className="px-5 py-3 text-gray-700">{item.kind}</td>
+                        <td className={`px-5 py-3 font-semibold ${getSeverityClass(item.severity)}`}>
+                          {item.severity || 'UNKNOWN'}
                         </td>
-                        <td className="px-5 py-3 text-gray-700">{item.ID}</td>
-                        <td className="px-5 py-3 text-gray-700">{item.Title}</td>
-                        <td className="px-5 py-3 text-gray-700">{item.Status}</td>
-                        <td className="px-5 py-3 text-gray-500">
-                          {item?.CauseMetadata?.StartLine
-                            ? `Line ${item.CauseMetadata.StartLine}`
-                            : '—'}
-                        </td>
+                        <td className="px-5 py-3 text-gray-700">{item.id}</td>
+                        <td className="px-5 py-3 text-gray-700">{item.title}</td>
+                        <td className="px-5 py-3 text-gray-700">{item.status}</td>
+                        <td className="px-5 py-3 text-gray-500">{item.location}</td>
                       </tr>
                     ))}
                   </tbody>
