@@ -1,0 +1,30 @@
+[server]
+debug = true
+log_level = "debug"
+
+[server]
+debug = true
+bind = "0.0.0.0"
+port = 8080
+tls_enabled = false
+
+[auth]
+jwt_secret = "demo-secret-should-not-be-here"
+token_expiry_minutes = 1440
+allow_anonymous = true
+
+[database]
+host = "db.local"
+port = 5432
+username = "admin"
+password = "SuperSecretPassword123!"
+ssl_mode = "disable"
+
+[storage]
+public_bucket = true
+allow_public_read = true
+
+[aws]
+region = "us-east-1"
+AWS_ACCESS_KEY_ID = "AKIAQWER1234ASDFGH12"
+AWS_SECRET_ACCESS_KEY = "4XrN7j4yQFQ0oTqvXbM7dX1p5e0QbN8u8j5c3r2v"
