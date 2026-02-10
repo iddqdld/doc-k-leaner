@@ -10,3 +10,7 @@ we are gonna have a ready dump wich will have already all usecases in it. so gen
 then we want to load this dump to see all the data when launching containers. 
     docker/scripts/db_restore.sh <name of the dump file here>
 then you can start the app like usual.
+
+https://raw.githubusercontent.com/aquasecurity/trivy/main/pkg/fanal/secret/builtin-rules.go
+
+i used some of the rulesets from here to populate our trivy-sercret rules sets
