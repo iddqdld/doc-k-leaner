@@ -26,14 +26,22 @@ def _extract_original_filename(storage_path: str) -> str:
     return basename
 
 
-def _detect_trivy_mode(filename: str) -> str:
+def _detect_trivy_target(filename: str) -> str:
     lower = filename.lower()
     if lower == "dockerfile" or lower.startswith("dockerfile."):
         return "config"
     ext = os.path.splitext(lower)[1]
-    if ext in {".yaml", ".yml", ".json", ".toml", ".tf", ".tfvars", ".hcl", ".env", ".properties", ".conf", ".cfg"}:
+    if ext in {".yaml", ".yml", ".json", ".tf", ".tfvars", ".hcl", ".env", ".properties", ".conf", ".cfg"}:
         return "config"
-    return "config"
+    if ext in {".spdx", ".cdx"} or lower.endswith(".spdx.json") or lower.endswith(".cdx.json"):
+        return "sbom"
+    return "filesystem"
+
+
+def _supports_secret_fallback(filename: str) -> bool:
+    lower = filename.lower()
+    ext = os.path.splitext(lower)[1]
+    return ext in {".toml", ".env", ".properties", ".conf", ".cfg", ".txt"}
 
 
 def _build_file_patterns(filename: str, storage_path: str) -> list[str]:
@@ -88,6 +96,10 @@ def _parse_trivy_summary(payload: dict[str, Any]) -> dict[str, Any]:
             severity = str(item.get("Severity", "UNKNOWN")).upper()
             key = severity.lower() if severity.lower() in counts else "unknown"
             counts[key] += 1
+        for item in result.get("Secrets", []) or []:
+            severity = str(item.get("Severity", "UNKNOWN")).upper()
+            key = severity.lower() if severity.lower() in counts else "unknown"
+            counts[key] += 1
 
     total = sum(counts.values())
     return {
@@ -97,28 +109,22 @@ def _parse_trivy_summary(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-async def run_trivy_scan(file_id: str, storage_path: str) -> tuple[dict[str, Any], str, str, datetime]:
+async def run_trivy_image_scan(image_ref: str, scan_id: str) -> tuple[dict[str, Any], str, str, datetime]:
     os.makedirs(settings.scan_dir, exist_ok=True)
-    output_path = build_scan_output_path(file_id)
+    output_path = build_scan_output_path(scan_id)
     created_at = datetime.now(timezone.utc)
-
-    trivy_path = _map_storage_path_for_trivy(storage_path)
-    filename = _extract_original_filename(storage_path)
-    mode = _detect_trivy_mode(filename)
     docker_cli = _resolve_docker_cli()
-    trivy_target = os.path.dirname(trivy_path) or trivy_path
-    file_patterns = _build_file_patterns(filename, storage_path)
+
     cmd = [
         docker_cli,
         "exec",
         "trivy",
         "trivy",
-        mode,
+        "image",
         "--format",
         "json",
         "--quiet",
-        *[item for pattern in file_patterns for item in ["--file-patterns", pattern]],
-        trivy_target,
+        image_ref,
     ]
 
     def _run():
@@ -131,6 +137,119 @@ async def run_trivy_scan(file_id: str, storage_path: str) -> tuple[dict[str, Any
         with open(output_path, "w", encoding="utf-8") as handle:
             json.dump({"error": summary.get("error")}, handle)
         return summary, output_path, "failed", created_at
+
+    stdout = result.stdout.strip()
+    stderr = result.stderr.strip()
+
+    if result.returncode != 0:
+        summary = _empty_summary("failed", stderr or "Trivy image scan failed")
+        with open(output_path, "w", encoding="utf-8") as handle:
+            json.dump({"error": summary.get("error")}, handle)
+        return summary, output_path, "failed", created_at
+
+    try:
+        payload = json.loads(stdout) if stdout else {}
+    except json.JSONDecodeError:
+        summary = _empty_summary("failed", "Trivy output is not valid JSON")
+        with open(output_path, "w", encoding="utf-8") as handle:
+            json.dump({"error": summary.get("error")}, handle)
+        return summary, output_path, "failed", created_at
+
+    summary = _parse_trivy_summary(payload)
+    with open(output_path, "w", encoding="utf-8") as handle:
+        json.dump(payload, handle)
+
+    return summary, output_path, "completed", created_at
+
+
+async def run_trivy_scan(file_id: str, storage_path: str) -> tuple[dict[str, Any], str, str, datetime]:
+    os.makedirs(settings.scan_dir, exist_ok=True)
+    output_path = build_scan_output_path(file_id)
+    created_at = datetime.now(timezone.utc)
+
+    trivy_path = _map_storage_path_for_trivy(storage_path)
+    filename = _extract_original_filename(storage_path)
+    target_type = _detect_trivy_target(filename)
+    docker_cli = _resolve_docker_cli()
+    if target_type == "config":
+        file_patterns = _build_file_patterns(filename, storage_path)
+        if file_patterns:
+            trivy_target = os.path.dirname(trivy_path) or trivy_path
+            cmd = [
+                docker_cli,
+                "exec",
+                "trivy",
+                "trivy",
+                "config",
+                "--format",
+                "json",
+                "--quiet",
+                *[item for pattern in file_patterns for item in ["--file-patterns", pattern]],
+                trivy_target,
+            ]
+        else:
+            cmd = [
+                docker_cli,
+                "exec",
+                "trivy",
+                "trivy",
+                "config",
+                "--format",
+                "json",
+                "--quiet",
+                trivy_path,
+            ]
+    elif target_type == "sbom":
+        cmd = [
+            docker_cli,
+            "exec",
+            "trivy",
+            "trivy",
+            "sbom",
+            "--format",
+            "json",
+            "--quiet",
+            trivy_path,
+        ]
+    else:
+        trivy_target = os.path.dirname(trivy_path) or trivy_path
+        cmd = [
+            docker_cli,
+            "exec",
+            "trivy",
+            "trivy",
+            "fs",
+            "--security-checks",
+            "secret",
+            "--disable-allow-rules",
+            "--secret-config",
+            settings.trivy_secret_config,
+            "--format",
+            "json",
+            "--quiet",
+            trivy_target,
+        ]
+
+    def _run():
+        return subprocess.run(cmd, capture_output=True, text=True)
+
+    try:
+        result = await asyncio.to_thread(_run)
+    except FileNotFoundError:
+        summary = _empty_summary("failed", "Docker CLI not found in backend container")
+        with open(output_path, "w", encoding="utf-8") as handle:
+            json.dump({"error": summary.get("error")}, handle)
+        return summary, output_path, "failed", created_at
+
+    if result.returncode != 0 and "unknown flag" in result.stderr:
+        fallback_cmd = [arg for arg in cmd if arg not in {"--security-checks", "secret", "--disable-allow-rules"}]
+        try:
+            result = await asyncio.to_thread(lambda: subprocess.run(fallback_cmd, capture_output=True, text=True))
+        except FileNotFoundError:
+            summary = _empty_summary("failed", "Docker CLI not found in backend container")
+            with open(output_path, "w", encoding="utf-8") as handle:
+                json.dump({"error": summary.get("error")}, handle)
+            return summary, output_path, "failed", created_at
     stdout = result.stdout.strip()
     stderr = result.stderr.strip()
 
@@ -148,8 +267,35 @@ async def run_trivy_scan(file_id: str, storage_path: str) -> tuple[dict[str, Any
             json.dump({"error": summary.get("error")}, handle)
         return summary, output_path, "failed", created_at
 
+    summary = _parse_trivy_summary(payload)
+
+    if summary["total"] == 0 and target_type == "config" and _supports_secret_fallback(filename):
+        fallback_cmd = [
+            docker_cli,
+            "exec",
+            "trivy",
+            "trivy",
+            "fs",
+            "--security-checks",
+            "secret",
+            "--disable-allow-rules",
+            "--secret-config",
+            settings.trivy_secret_config,
+            "--format",
+            "json",
+            "--quiet",
+            os.path.dirname(trivy_path) or trivy_path,
+        ]
+        fallback_result = await asyncio.to_thread(lambda: subprocess.run(fallback_cmd, capture_output=True, text=True))
+        if fallback_result.returncode == 0:
+            try:
+                fallback_payload = json.loads(fallback_result.stdout.strip() or "{}")
+                payload = fallback_payload
+                summary = _parse_trivy_summary(payload)
+            except json.JSONDecodeError:
+                pass
+
     with open(output_path, "w", encoding="utf-8") as handle:
         json.dump(payload, handle)
 
-    summary = _parse_trivy_summary(payload)
     return summary, output_path, "completed", created_at
