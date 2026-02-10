@@ -1,0 +1,17 @@
+SPDXVersion: SPDX-2.2
+DataLicense: CC0-1.0
+SPDXID: SPDXRef-DOCUMENT
+DocumentName: DemoSBOM
+DocumentNamespace: http://example.com/spdx/demo
+Creator: Person: Demo User
+Created: 2026-02-09T00:00:00Z
+
+PackageName: demo-app
+SPDXID: SPDXRef-Package
+PackageVersion: 2.14.1
+PackageDownloadLocation: NOASSERTION
+FilesAnalyzed: false
+PackageLicenseConcluded: NOASSERTION
+PackageLicenseDeclared: NOASSERTION
+PackageCopyrightText: NOASSERTION
+ExternalRef: PACKAGE-MANAGER purl pkg:maven/org.apache.logging.log4j/log4j-core@2.14.1
