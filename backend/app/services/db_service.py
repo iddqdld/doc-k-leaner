@@ -4,6 +4,7 @@ from psycopg.types.json import Json
 
 from app.schemas.filesupload import FileMetadata
 from app.schemas.admin import AdminFileRecord
+from app.schemas.stats import AuditStats
 
 
 async def insert_file_record(conn, metadata: FileMetadata, storage_path: str) -> None:
@@ -104,3 +105,29 @@ async def insert_scan_result(
             ),
         )
     await conn.commit()
+
+
+async def get_audit_stats(conn) -> AuditStats:
+    async with conn.cursor() as cur:
+        await cur.execute(
+            """
+            SELECT
+                (SELECT COUNT(*) FROM files) AS total_files,
+                (SELECT COUNT(*) FROM scan_results) AS total_scans,
+                COALESCE(SUM((summary_json->>'critical')::int), 0) AS critical,
+                COALESCE(SUM((summary_json->>'high')::int), 0) AS high,
+                COALESCE(SUM((summary_json->>'medium')::int), 0) AS medium,
+                COALESCE(SUM((summary_json->>'low')::int), 0) AS low
+            FROM scan_results
+            """
+        )
+        row = await cur.fetchone()
+
+    return AuditStats(
+        total_files=row[0],
+        total_scans=row[1],
+        critical=row[2],
+        high=row[3],
+        medium=row[4],
+        low=row[5],
+    )

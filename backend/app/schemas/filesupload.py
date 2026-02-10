@@ -23,6 +23,16 @@ class FileFromURLRequest(BaseModel):
         examples=["https://raw.githubusercontent.com/user/repo/main/docker-compose.yml"]
     )
 
+
+class ImageScanRequest(BaseModel):
+    """Request body for scanning a container image."""
+
+    image: str = Field(
+        ...,
+        description="Container image reference (e.g., nginx:latest)",
+        examples=["nginx:latest"]
+    )
+
 class FileUploadResponse(BaseModel):
     """Response after successful file upload."""
     
@@ -53,6 +63,24 @@ class FileUploadResponse(BaseModel):
     uploaded_at: datetime = Field(
         ...,
         description="Timestamp when file was stored"
+    )
+    scan_summary: ScanSummary | None = Field(
+        default=None,
+        description="Trivy scan summary (if available)"
+    )
+    scan_report_url: str | None = Field(
+        default=None,
+        description="URL to the full scan JSON report"
+    )
+
+
+class ImageScanResponse(BaseModel):
+    """Response after successful image scan."""
+
+    image: str = Field(
+        ...,
+        description="Image reference scanned",
+        examples=["nginx:latest"]
     )
     scan_summary: ScanSummary | None = Field(
         default=None,

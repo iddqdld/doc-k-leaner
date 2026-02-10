@@ -25,6 +25,8 @@ from app.schemas.filesupload import (
     FileUploadResponse,
     FileMetadata,
     FileContentResponse,
+    ImageScanRequest,
+    ImageScanResponse,
     ErrorResponse,
 )
 from app.schemas.admin import AdminFileRecord
@@ -41,7 +43,7 @@ from app.services.file_service import (
     generate_file_id,
 )
 from app.services.storage_service import save_file_to_disk, delete_file_from_disk
-from app.services.scan_service import run_trivy_scan, build_scan_output_path
+from app.services.scan_service import run_trivy_scan, run_trivy_image_scan, build_scan_output_path
 
 # setup example @router.post("/upload") -> POST /api/files/upload
 router = APIRouter(
@@ -455,6 +457,40 @@ async def get_scan_report(file_id: str):
     with open(path, "rb") as handle:
         content = handle.read()
     return Response(content=content, media_type="application/json")
+
+
+@router.post(
+    "/scan-image",
+    response_model=ImageScanResponse,
+    responses={
+        400: {"model": ErrorResponse, "description": "Invalid image reference"},
+        502: {"model": ErrorResponse, "description": "Failed to scan image"},
+    },
+    summary="Scan container image",
+    description="Run Trivy image scan for a container image reference",
+)
+async def scan_image(
+    request: Request,
+    payload: ImageScanRequest,
+):
+    image_ref = payload.image.strip()
+    if not image_ref:
+        raise HTTPException(status_code=400, detail="Image reference is required")
+
+    scan_id = generate_file_id()
+    try:
+        scan_summary, _output_path, _status, _created_at = await run_trivy_image_scan(
+            image_ref,
+            scan_id,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Failed to scan image: {exc}")
+
+    return ImageScanResponse(
+        image=image_ref,
+        scan_summary=scan_summary,
+        scan_report_url=str(request.url_for("get_scan_report", file_id=scan_id)),
+    )
 
 
 @router.get(
