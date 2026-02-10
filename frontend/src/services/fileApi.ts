@@ -58,11 +58,28 @@ export interface CommitInfo {
   date: string;
 }
 
-export interface CommitInfo {
-  sha: string;
-  short_sha: string;
-  message: string;
-  date: string;
+export interface ImageScanResponse {
+  image: string;
+  scan_summary?: {
+    status: string;
+    total: number;
+    critical: number;
+    high: number;
+    medium: number;
+    low: number;
+    unknown: number;
+    error?: string | null;
+  } | null;
+  scan_report_url?: string | null;
+}
+
+export interface AuditStats {
+  total_files: number;
+  total_scans: number;
+  critical: number;
+  high: number;
+  medium: number;
+  low: number;
 }
 // api functions 
 
@@ -144,6 +161,34 @@ export async function getLatestCommits(limit = 3): Promise<CommitInfo[]> {
   if (!response.ok) {
     const error: ApiError = await response.json();
     throw new Error(error.detail || `Failed to load commits: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+export async function scanImage(image: string): Promise<ImageScanResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/files/scan-image`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ image }),
+  });
+
+  if (!response.ok) {
+    const error: ApiError = await response.json();
+    throw new Error(error.detail || `Failed to scan image: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+export async function getAuditStats(): Promise<AuditStats> {
+  const response = await fetch(`${API_BASE_URL}/api/stats/overview`);
+
+  if (!response.ok) {
+    const error: ApiError = await response.json();
+    throw new Error(error.detail || `Failed to load stats: ${response.status}`);
   }
 
   return response.json();
