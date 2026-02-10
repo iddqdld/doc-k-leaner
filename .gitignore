@@ -16,3 +16,6 @@ ENV/
 
 # Docker
 .docker/
+data/
+dump.rdb
+

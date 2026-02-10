@@ -7,17 +7,23 @@ from fastapi_cache.backends.redis import RedisBackend
 from redis import asyncio as aioredis
 
 from app.api.files import router as files_router
+from app.api.news import router as news_router
+from app.api.stats import router as stats_router
+from app.api.news import router as news_router
+from app.db.postgres import init_db
+from app.core.config import settings
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: Initialize Redis cache
     redis = aioredis.from_url(
-        "redis://redis:6379",
+        settings.redis_url,
         encoding="utf-8",
         decode_responses=True
     )
     FastAPICache.init(RedisBackend(redis), prefix="dockcleaner-cache")
+    await init_db()
     yield
     # Shutdown: Close Redis connection
     await redis.close()
@@ -42,6 +48,9 @@ app.add_middleware(
 
 # Include routers
 app.include_router(files_router)
+app.include_router(news_router)
+app.include_router(stats_router)
+app.include_router(news_router)
 
 
 @app.get("/")
