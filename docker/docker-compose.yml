@@ -18,8 +18,18 @@ services:
     restart: unless-stopped
     depends_on:
       - redis
+      - postgres
     environment:
-      - REDIS_URL=redis://redis:6379
+      - DOCKCLEANER_REDIS_URL=redis://redis:6379
+      - DOCKCLEANER_POSTGRES_URL=postgresql://dockcleaner:dockcleaner@postgres:5432/dockcleaner
+      - DOCKCLEANER_STORAGE_DIR=/app/data/storage
+      - DOCKCLEANER_SCAN_DIR=/app/data/scans
+      - DOCKCLEANER_GITHUB_REPO=iddqdld/doc-k-leaner
+      - DOCKCLEANER_GITHUB_BRANCH=dev
+    volumes:
+      - ./data/storage:/app/data/storage
+      - ./data/scans:/app/data/scans
+      - /var/run/docker.sock:/var/run/docker.sock
 
   redis:
     image: redis:7-alpine
@@ -27,7 +37,26 @@ services:
       - "6379:6379"
     restart: unless-stopped
     volumes:
-      - redis_data:/data
+      - ./data/redis:/data
 
-volumes:
-  redis_data:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=dockcleaner
+      - POSTGRES_USER=dockcleaner
+      - POSTGRES_PASSWORD=dockcleaner
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+
+  trivy:
+    image: aquasec/trivy:0.69.1
+    container_name: trivy
+    entrypoint: ["sh", "-c", "sleep infinity"]
+    volumes:
+      - ./data/storage:/data/storage
+      - ./trivy-secret.yaml:/etc/trivy/trivy-secret.yaml:ro
+
+volumes: {}

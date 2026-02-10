@@ -7,9 +7,9 @@ ALL WORK SHOULD BE DONE FROM DEV BRUNCH!!!
 main brunch is for stable version after testig, as I do testing, i made it so only i can merge to dev to MAIN to avoid errors.
 
 # pour lancer le projet entier 
-1. lancer docker engine
-2.  cd docker
-    docker compose up --build
+    1. launch docker engine
+    2. cd docker (should be in doc-k-leaner/docker)
+    3. docker compose up --build
 
 all work should be done like this 
 -----------------------------------------------------------------------------------------

@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import Layout from '../components/Layout';
 import Scanner from '../components/Scanner';
 import Dashboard from '../components/Dashboard';
+import AuditDashboard from '../components/AuditDashboard';
 import Infrastructure from '../components/Infrastructure';
 
 const App: React.FC = () => {
@@ -13,8 +14,9 @@ const App: React.FC = () => {
       case 'scanner':
         return <Scanner />;
       case 'sandbox':
-      case 'dashboard':
-        return <Dashboard />;
+        return <AuditDashboard />;
+      case 'ressources':
+        return <Dashboard onGoToDashboard={() => setActiveTab('ressources')} />;
       case 'infrastructure':
         return <Infrastructure />;
       default:
