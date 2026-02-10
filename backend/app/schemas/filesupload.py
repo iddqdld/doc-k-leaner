@@ -3,6 +3,17 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, HttpUrl, Field
 
+
+class ScanSummary(BaseModel):
+    status: str
+    total: int
+    critical: int
+    high: int
+    medium: int
+    low: int
+    unknown: int
+    error: str | None = None
+
 class FileFromURLRequest(BaseModel):
     """Request body for fetching a file from URL."""
     
@@ -10,6 +21,16 @@ class FileFromURLRequest(BaseModel):
         ..., # <-- pour dire que cette Field est obligatoire, sinon sans ca va donner le meme resultat, mais comme ca le code serait plus claire.
         description="URL to fetch the file from", # <-- tous descriptions seront visible dans notre docs pour api avec OpenAPI
         examples=["https://raw.githubusercontent.com/user/repo/main/docker-compose.yml"]
+    )
+
+
+class ImageScanRequest(BaseModel):
+    """Request body for scanning a container image."""
+
+    image: str = Field(
+        ...,
+        description="Container image reference (e.g., nginx:latest)",
+        examples=["nginx:latest"]
     )
 
 class FileUploadResponse(BaseModel):
@@ -42,6 +63,32 @@ class FileUploadResponse(BaseModel):
     uploaded_at: datetime = Field(
         ...,
         description="Timestamp when file was stored"
+    )
+    scan_summary: ScanSummary | None = Field(
+        default=None,
+        description="Trivy scan summary (if available)"
+    )
+    scan_report_url: str | None = Field(
+        default=None,
+        description="URL to the full scan JSON report"
+    )
+
+
+class ImageScanResponse(BaseModel):
+    """Response after successful image scan."""
+
+    image: str = Field(
+        ...,
+        description="Image reference scanned",
+        examples=["nginx:latest"]
+    )
+    scan_summary: ScanSummary | None = Field(
+        default=None,
+        description="Trivy scan summary (if available)"
+    )
+    scan_report_url: str | None = Field(
+        default=None,
+        description="URL to the full scan JSON report"
     )
 
 

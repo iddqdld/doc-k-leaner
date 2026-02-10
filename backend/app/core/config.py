@@ -5,6 +5,13 @@ class Settings(BaseSettings):
     """Application settings."""
 
     redis_url: str = "redis://redis:6379"
+    postgres_url: str = "postgresql://dockcleaner:dockcleaner@postgres:5432/dockcleaner"
+    storage_dir: str = "data/storage"
+    scan_dir: str = "data/scans"
+    docker_cli_path: str = "/usr/bin/docker"
+    github_repo: str = "iddqdld/doc-k-leaner"
+    github_branch: str = "dev"
+    trivy_secret_config: str = "/etc/trivy/trivy-secret.yaml"
     
     max_file_size_mb: int = 20
     max_file_size_bytes: int = 20 * 1024 * 1024  # 20MB comme bytes
@@ -13,7 +20,6 @@ class Settings(BaseSettings):
     allowed_extensions: set[str] = {
         # Docker & Container configs
         ".dockerfile",
-        ".dockerignore",
         # Compose & Orchestration
         ".yml",
         ".yaml",
@@ -24,13 +30,17 @@ class Settings(BaseSettings):
         ".cfg",
         ".env",
         ".properties",
-        # Kubernetes
-        ".k8s",
-        # Nginx / Apache
-        ".nginx",
-        # txt/md (documentation si ils ont oublie de nettoyer les cles secret for les api ou qqch)
+        # Terraform
+        ".tf",
+        ".tfvars",
+        ".hcl",
+        # SBOM
+        ".spdx",
+        ".spdx.json",
+        ".cdx",
+        ".cdx.json",
+        # Filesystem demo/support
         ".txt",
-        ".md",
     }
     
     # Allowed MIME types (pour notre service de validation interne)
