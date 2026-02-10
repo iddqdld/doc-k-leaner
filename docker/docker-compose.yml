@@ -57,5 +57,6 @@ services:
     entrypoint: ["sh", "-c", "sleep infinity"]
     volumes:
       - ./data/storage:/data/storage
+      - ./trivy-secret.yaml:/etc/trivy/trivy-secret.yaml:ro
 
 volumes: {}
