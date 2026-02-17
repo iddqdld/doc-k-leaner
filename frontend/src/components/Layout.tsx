@@ -7,30 +7,31 @@ interface LayoutProps {
   setActiveTab: (tab: string) => void;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab }) => {
-  const navItems = [
-    { id: 'sandbox', label: 'Audit', icon: '📄' },
-    { id: 'scanner', label: 'Analyse Fichiers', icon: '📁' },
-    { id: 'collections', label: 'Sandbox', icon: '📦' },
-    { id: 'ressources', label: 'Ressources', icon: '❓' },
-    { id: 'demande', label: "Demande D'Informations", icon: '❓' },
-    { id: 'plus', label: 'Plus...', icon: '' },
-  ];
+const navItems = [
+  { id: 'sandbox', label: 'Audit' },
+  { id: 'scanner', label: 'Analyse Fichiers' },
+  { id: 'collections', label: 'Sandbox' },
+  { id: 'ressources', label: 'Ressources' },
+  { id: 'demande', label: "Demande d'informations" },
+  { id: 'infrastructure', label: 'Infrastructure' },
+];
 
+const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab }) => {
   return (
-    <div className="min-h-screen flex flex-col bg-[#fdfdfd]">
+    <div className="min-h-screen flex flex-col bg-[radial-gradient(circle_at_top,_#f8f4ff_0,_#fdfdfd_48%,_#f4f8ff_100%)]">
       {/* Top Navbar */}
-      <nav className="bg-[#5d2e8e] text-white px-4 h-12 flex items-center shadow-md z-50">
+      <nav className="bg-[#3a165d] text-white px-4 h-14 flex items-center shadow-md z-50 border-b border-white/10">
         <div className="flex items-center space-x-6 overflow-x-auto no-scrollbar">
           {navItems.map((item) => (
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
-              className={`flex items-center gap-2 text-xs font-medium whitespace-nowrap hover:text-orange-400 transition-colors ${
-                activeTab === item.id ? 'text-orange-400' : 'text-gray-200'
+              className={`text-xs tracking-wide font-semibold whitespace-nowrap transition-colors ${
+                activeTab === item.id
+                  ? 'text-amber-300'
+                  : 'text-violet-100/80 hover:text-white'
               }`}
             >
-              <span>{item.icon}</span>
               {item.label}
             </button>
           ))}
@@ -43,7 +44,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab }) =>
       </main>
 
       {/* Footer */}
-      <footer className="bg-[#5d2e8e] h-24 w-full mt-auto"></footer>
+      <footer className="bg-[#3a165d] h-16 w-full mt-auto border-t border-white/10"></footer>
     </div>
   );
 };
