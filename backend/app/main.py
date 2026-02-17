@@ -11,7 +11,7 @@ from app.api.news import router as news_router
 from app.api.stats import router as stats_router
 from app.api.news import router as news_router
 from app.db.postgres import init_db
-from app.core.config import settings
+from app.core.config import settingss
 
 
 @asynccontextmanager
