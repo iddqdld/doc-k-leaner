@@ -1,59 +1,44 @@
-
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { AdminFileRecord, getAdminFiles } from '../services/fileApi';
 
-interface DashboardProps {
-  onGoToDashboard: () => void;
-}
-
-const Dashboard: React.FC<DashboardProps> = ({ onGoToDashboard }) => {
+const Dashboard: React.FC = () => {
   const [files, setFiles] = useState<AdminFileRecord[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    let isMounted = true;
-    const load = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const data = await getAdminFiles(50);
-        if (isMounted) {
-          setFiles(data);
-        }
-      } catch (err) {
-        if (isMounted) {
-          setError(err instanceof Error ? err.message : 'Failed to load files');
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    load();
-    return () => {
-      isMounted = false;
-    };
+  const loadFiles = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await getAdminFiles(50);
+      setFiles(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load files');
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
-  const formatFileSize = (bytes: number): string => {
+  useEffect(() => {
+    void loadFiles();
+  }, [loadFiles]);
+
+  const formatFileSize = useCallback((bytes: number): string => {
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  };
+  }, []);
 
-  const formatDate = (value: string): string => {
+  const formatDate = useCallback((value: string): string => {
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return value;
     return date.toLocaleString();
-  };
+  }, []);
 
-  const formatScanSummary = (file: AdminFileRecord): string => {
+  const formatScanSummary = useCallback((file: AdminFileRecord): string => {
     if (!file.scan_summary) return '—';
     return `C:${file.scan_summary.critical} H:${file.scan_summary.high} M:${file.scan_summary.medium} L:${file.scan_summary.low} U:${file.scan_summary.unknown}`;
-  };
+  }, []);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 w-full">
@@ -64,7 +49,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onGoToDashboard }) => {
         </div>
         <button
           className="bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors disabled:opacity-60"
-          onClick={onGoToDashboard}
+          onClick={loadFiles}
           disabled={isLoading}
         >
           {isLoading ? 'Loading...' : 'Refresh'}
