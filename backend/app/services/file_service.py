@@ -7,6 +7,7 @@ on a de place different pour chaque fichier
 """
 
 import base64
+import string
 import uuid
 from datetime import datetime, timezone
 from typing import Optional
@@ -63,7 +64,9 @@ def is_dockerfile(filename: str) -> bool:
 def validate_file(
     filename: str,
     content_type: str,
-    size: int
+    size: int,
+    *,
+    content: bytes | None = None,
 ) -> None:
     """
     Validate file against all rules. Raises exception if invalid.
@@ -97,6 +100,46 @@ def validate_file(
         raise InvalidFileTypeError(
             f"MIME type '{content_type}' is not allowed"
         )
+
+    if content is not None and not _is_probably_text(content):
+        raise InvalidFileTypeError(
+            "File content does not look like text; binary payloads are not allowed"
+        )
+
+
+_PRINTABLE = set(string.printable.encode("ascii"))
+
+
+def _is_probably_text(content: bytes) -> bool:
+    """Heuristic check to reject obvious binary uploads.
+
+    This is defense-in-depth, meant to prevent cases like `evil.exe` renamed to `.yml`.
+    """
+    if not content:
+        return True
+
+    # NUL bytes are a strong indicator of binary content.
+    if b"\x00" in content:
+        return False
+
+    sample = content[:8192]
+    # Count disallowed control characters (excluding \t, \n, \r).
+    control_count = 0
+    for b in sample:
+        if b in (9, 10, 13):  # tab / lf / cr
+            continue
+        if b < 32 or b == 127:
+            control_count += 1
+    if control_count / max(len(sample), 1) > 0.02:
+        return False
+
+    # If it's mostly ASCII-printable or high-bit unicode bytes, treat as text.
+    # This avoids falsely rejecting UTF-8 content.
+    ascii_printable = 0
+    for b in sample:
+        if b in _PRINTABLE or b >= 128:
+            ascii_printable += 1
+    return ascii_printable / max(len(sample), 1) > 0.85
 
 # redis part
 

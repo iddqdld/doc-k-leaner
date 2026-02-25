@@ -81,6 +81,14 @@ export interface AuditStats {
   medium: number;
   low: number;
 }
+
+export interface SandboxValidationResponse {
+  sanitized_text: string;
+  input_length: number;
+  model: string;
+  request_id?: string | null;
+  processed_at: string;
+}
 // api functions 
 
 // drag&drop upload
@@ -192,4 +200,27 @@ export async function getAuditStats(): Promise<AuditStats> {
   }
 
   return response.json();
+}
+
+export async function validateSandboxInput(
+  inputText: string
+): Promise<SandboxValidationResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/sandbox/validate`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ input_text: inputText }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    const detail: string =
+      (data && (data.detail as string)) ||
+      `Sandbox validation failed: ${response.status}`;
+    throw new Error(detail);
+  }
+
+  return data as SandboxValidationResponse;
 }

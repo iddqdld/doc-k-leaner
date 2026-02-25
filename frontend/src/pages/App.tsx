@@ -5,6 +5,7 @@ import Scanner from '../components/Scanner';
 import Dashboard from '../components/Dashboard';
 import AuditDashboard from '../components/AuditDashboard';
 import Infrastructure from '../components/Infrastructure';
+import Sandbox from '../components/Sandbox';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('scanner');
@@ -15,6 +16,8 @@ const App: React.FC = () => {
         return <Scanner />;
       case 'sandbox':
         return <AuditDashboard />;
+      case 'collections':
+        return <Sandbox />;
       case 'ressources':
         return <Dashboard onGoToDashboard={() => setActiveTab('ressources')} />;
       case 'infrastructure':

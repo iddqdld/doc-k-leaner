@@ -1,0 +1,14 @@
+server {
+    listen 80;
+    server_name _;
+
+    root /var/www/html;
+
+    location / {
+        autoindex on;   # directory listing
+    }
+
+    location /admin {
+        allow all;      # no access control
+    }
+}
