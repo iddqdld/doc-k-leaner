@@ -1,0 +1,6 @@
+[server]
+debug = true
+bind = "0.0.0.0"
+
+[security]
+allow_anonymous = true

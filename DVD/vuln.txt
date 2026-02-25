@@ -1,0 +1,5 @@
+username: admin
+password: admin
+ssh_key: -----BEGIN RSA PRIVATE KEY-----
+MIIBOgIBAAJBAKFAKEKEY
+-----END RSA PRIVATE KEY-----

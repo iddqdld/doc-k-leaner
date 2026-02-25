@@ -131,3 +131,22 @@ async def get_audit_stats(conn) -> AuditStats:
         medium=row[4],
         low=row[5],
     )
+
+
+async def get_file_storage_path(conn, file_id: str) -> str | None:
+    async with conn.cursor() as cur:
+        await cur.execute(
+            "SELECT storage_path FROM files WHERE id = %s",
+            (file_id,),
+        )
+        row = await cur.fetchone()
+    return row[0] if row else None
+
+
+async def delete_file_record(conn, file_id: str) -> bool:
+    """Delete a file record from Postgres (scan_results cascades via FK)."""
+    async with conn.cursor() as cur:
+        await cur.execute("DELETE FROM files WHERE id = %s", (file_id,))
+        deleted = cur.rowcount and cur.rowcount > 0
+    await conn.commit()
+    return bool(deleted)
