@@ -9,13 +9,15 @@ Routes:
     DELETE /{file_id}   - Delete file
 """
 
-import httpx
 import json
 import os
+import re
 from datetime import datetime, timezone
 from urllib.parse import urlparse, urlunparse
+from uuid import UUID
 from fastapi import APIRouter, File, HTTPException, UploadFile, Depends, Request
 from fastapi.responses import Response
+from fastapi.responses import FileResponse
 from redis import asyncio as aioredis
 
 from app.core.config import settings
@@ -30,7 +32,13 @@ from app.schemas.filesupload import (
     ErrorResponse,
 )
 from app.schemas.admin import AdminFileRecord
-from app.services.db_service import insert_file_record, list_file_records, insert_scan_result
+from app.services.db_service import (
+    delete_file_record,
+    get_file_storage_path,
+    insert_file_record,
+    insert_scan_result,
+    list_file_records,
+)
 from app.services.file_service import (
     validate_file,
     store_file,
@@ -42,14 +50,40 @@ from app.services.file_service import (
     FileNotFoundError,
     generate_file_id,
 )
-from app.services.storage_service import save_file_to_disk, delete_file_from_disk
+from app.services.storage_service import build_storage_path, save_file_to_disk, delete_file_from_disk
 from app.services.scan_service import run_trivy_scan, run_trivy_image_scan, build_scan_output_path
+from app.services.url_fetch_service import RemoteFileTooLargeError, UnsafeFetchURLError, fetch_url_with_limit
 
 # setup example @router.post("/upload") -> POST /api/files/upload
 router = APIRouter(
     prefix="/api/files",
     tags=["files"],  # groups endpoints in /docs
 )
+
+_HEADER_BAD_CHARS_RE = re.compile(r"[\r\n\"]+")
+
+
+def _safe_download_filename(name: str) -> str:
+    safe = os.path.basename(name or "file")
+    safe = _HEADER_BAD_CHARS_RE.sub("_", safe)
+    return safe or "file"
+
+
+async def _read_upload_file_with_limit(file: UploadFile, *, max_bytes: int) -> bytes:
+    chunks: list[bytes] = []
+    total = 0
+    while True:
+        chunk = await file.read(1024 * 1024)
+        if not chunk:
+            break
+        total += len(chunk)
+        if total > max_bytes:
+            raise FileTooLargeError(
+                f"File size exceeds maximum allowed ({settings.max_file_size_mb}MB)"
+            )
+        chunks.append(chunk)
+    return b"".join(chunks)
+
 
 def normalize_source_url(url: str) -> str:
     parsed = urlparse(url)
@@ -125,15 +159,21 @@ async def upload_file(
     - Checks file size (max 20MB)
     - Stores in Redis with unique ID
     """
-    # read file content get bytes
-    content = await file.read()
+    try:
+        # read file content (bounded) -> bytes
+        content = await _read_upload_file_with_limit(
+            file, max_bytes=settings.max_file_size_bytes
+        )
+    finally:
+        await file.close()
     
     # validation
     try:
         validate_file( # check size, extension and MIME check
             filename=file.filename or "unknown", 
             content_type=file.content_type or "application/octet-stream",
-            size=len(content)
+            size=len(content),
+            content=content,
         )
     except FileTooLargeError as e:
         raise HTTPException(status_code=413, detail=str(e)) #HTTPEception to stop exec imideatly + return error msg string as json
@@ -245,42 +285,35 @@ async def upload_from_url(
     
     # fetch file from URL
     try:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                fetch_url,
-                follow_redirects=True,
-                timeout=30.0,
-            )
-            response.raise_for_status()
-    except httpx.HTTPStatusError as e: 
-        raise HTTPException(
-            status_code=502,
-            detail=f"Failed to fetch URL: HTTP {e.response.status_code}" # server respond with error
+        fetched = await fetch_url_with_limit(
+            fetch_url,
+            max_bytes=settings.max_file_size_bytes,
+            timeout_seconds=30.0,
         )
-    except httpx.RequestError as e:
-        raise HTTPException(
-            status_code=502,
-            detail=f"Failed to fetch URL: {str(e)}" # couldn't reach server
-        )
+    except UnsafeFetchURLError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except RemoteFileTooLargeError as exc:
+        raise HTTPException(status_code=413, detail=str(exc))
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Failed to fetch URL: {exc}")
     
-    # extract filename from URL
-    filename = fetch_url.split("/")[-1].split("?")[0]  # Remove query params
+    # extract filename from final URL (after redirects)
+    final_url = fetched.url
+    filename = urlparse(final_url).path.split("/")[-1]  # basename
     if not filename:
         filename = "downloaded_file"
     
     # get content type from response headers
-    content_type = response.headers.get("content-type", "application/octet-stream")
-    # remove charset if present (e.g., "text/yaml; charset=utf-8" → "text/yaml")
-    content_type = content_type.split(";")[0].strip()
-    
-    content = response.content
+    content_type = fetched.content_type
+    content = fetched.content
     
     # validation
     try:
         validate_file(
             filename=filename,
             content_type=content_type,
-            size=len(content)
+            size=len(content),
+            content=content,
         )
     except FileTooLargeError as e:
         raise HTTPException(status_code=413, detail=str(e))
@@ -372,12 +405,12 @@ async def upload_from_url(
     description="Retrieve metadata about a stored file",
 )
 async def get_file_info(
-    file_id: str,
+    file_id: UUID,
     redis: aioredis.Redis = Depends(get_redis),
 ):
     """Get metadata for a stored file."""
     try:
-        return await get_file_metadata(redis, file_id)
+        return await get_file_metadata(redis, str(file_id))
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
@@ -395,22 +428,24 @@ async def get_file_info(
     description="Download the actual file content",
 )
 async def download_file(
-    file_id: str,
+    file_id: UUID,
     redis: aioredis.Redis = Depends(get_redis),
 ):
     """Download file content as binary."""
     try:
-        metadata = await get_file_metadata(redis, file_id)
-        content = await get_file_content(redis, file_id)
+        file_id_str = str(file_id)
+        metadata = await get_file_metadata(redis, file_id_str)
+        content = await get_file_content(redis, file_id_str)
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
     
     # Return as downloadable file
+    safe_filename = _safe_download_filename(metadata.filename)
     return Response(
         content=content,
         media_type=metadata.content_type,
         headers={
-            "Content-Disposition": f'attachment; filename="{metadata.filename}"'
+            "Content-Disposition": f'attachment; filename="{safe_filename}"'
         }
     )
 
@@ -425,16 +460,45 @@ async def download_file(
     description="Remove a file from storage",
 )
 async def delete_stored_file(
-    file_id: str,
+    file_id: UUID,
     redis: aioredis.Redis = Depends(get_redis),
+    db = Depends(get_db),
 ):
-    """Delete a file from Redis."""
-    deleted = await delete_file(redis, file_id)
-    
-    if not deleted:
-        raise HTTPException(status_code=404, detail=f"File '{file_id}' not found")
-    
-    return {"message": "File deleted successfully", "file_id": file_id}
+    """Delete a file from Redis, disk storage, and Postgres."""
+    file_id_str = str(file_id)
+
+    storage_path = await get_file_storage_path(db, file_id_str)
+    if not storage_path:
+        try:
+            metadata = await get_file_metadata(redis, file_id_str)
+            storage_path = build_storage_path(file_id_str, metadata.filename)
+        except FileNotFoundError:
+            storage_path = None
+
+    deleted_redis = await delete_file(redis, file_id_str)
+    deleted_db = await delete_file_record(db, file_id_str)
+
+    deleted_disk = False
+    if storage_path:
+        delete_file_from_disk(storage_path)
+        deleted_disk = True
+
+    scan_path = build_scan_output_path(file_id_str)
+    try:
+        os.remove(scan_path)
+    except FileNotFoundError:
+        pass
+
+    if not deleted_redis and not deleted_db and not storage_path:
+        raise HTTPException(status_code=404, detail=f"File '{file_id_str}' not found")
+
+    return {
+        "message": "File deleted successfully",
+        "file_id": file_id_str,
+        "deleted_redis": bool(deleted_redis),
+        "deleted_db": bool(deleted_db),
+        "deleted_disk": bool(deleted_disk),
+    }
 
 
 @router.get(
@@ -450,13 +514,11 @@ async def delete_stored_file(
     summary="Download scan report",
     description="Download the raw Trivy scan JSON for a file",
 )
-async def get_scan_report(file_id: str):
-    path = build_scan_output_path(file_id)
+async def get_scan_report(file_id: UUID):
+    path = build_scan_output_path(str(file_id))
     if not os.path.exists(path):
         raise HTTPException(status_code=404, detail="Scan report not found")
-    with open(path, "rb") as handle:
-        content = handle.read()
-    return Response(content=content, media_type="application/json")
+    return FileResponse(path, media_type="application/json")
 
 
 @router.post(
@@ -504,6 +566,7 @@ async def list_admin_files(
     limit: int = 50,
     db = Depends(get_db),
 ):
+    limit = max(1, min(int(limit), 200))
     records = await list_file_records(db, limit=limit)
     for record in records:
         record.scan_report_url = str(request.url_for("get_scan_report", file_id=record.id))

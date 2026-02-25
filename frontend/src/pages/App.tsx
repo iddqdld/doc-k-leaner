@@ -1,6 +1,11 @@
 
 import React, { Suspense, lazy, useMemo, useState } from 'react';
 import Layout from '../components/Layout';
+import Scanner from '../components/Scanner';
+import Dashboard from '../components/Dashboard';
+import AuditDashboard from '../components/AuditDashboard';
+import Infrastructure from '../components/Infrastructure';
+import Sandbox from '../components/Sandbox';
 
 const Scanner = lazy(() => import('../components/Scanner'));
 const Dashboard = lazy(() => import('../components/Dashboard'));
@@ -16,6 +21,8 @@ const App: React.FC = () => {
         return <Scanner />;
       case 'sandbox':
         return <AuditDashboard />;
+      case 'collections':
+        return <Sandbox />;
       case 'ressources':
         return <Dashboard />;
       case 'infrastructure':
