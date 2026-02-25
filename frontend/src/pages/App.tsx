@@ -1,16 +1,17 @@
 
 import React, { Suspense, lazy, useMemo, useState } from 'react';
 import Layout from '../components/Layout';
-import Scanner from '../components/Scanner';
+/* import Scanner from '../components/Scanner';
 import Dashboard from '../components/Dashboard';
 import AuditDashboard from '../components/AuditDashboard';
 import Infrastructure from '../components/Infrastructure';
 import Sandbox from '../components/Sandbox';
-
+*/
 const Scanner = lazy(() => import('../components/Scanner'));
 const Dashboard = lazy(() => import('../components/Dashboard'));
 const AuditDashboard = lazy(() => import('../components/AuditDashboard'));
 const Infrastructure = lazy(() => import('../components/Infrastructure'));
+const Sandbox = lazy(() => import('../components/Sandbox'))
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('scanner');
