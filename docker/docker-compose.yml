@@ -26,6 +26,10 @@ services:
       - DOCKCLEANER_SCAN_DIR=/app/data/scans
       - DOCKCLEANER_GITHUB_REPO=iddqdld/doc-k-leaner
       - DOCKCLEANER_GITHUB_BRANCH=dev
+      # Local Ollama integration (Windows / Docker Desktop)
+      - DOCKCLEANER_OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - DOCKCLEANER_SANDBOX_LLM_MODEL=phi3:mini
+      - DOCKCLEANER_SANDBOX_LLM_TEMPERATURE=0.0
     volumes:
       - ./data/storage:/app/data/storage
       - ./data/scans:/app/data/scans

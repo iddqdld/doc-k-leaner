@@ -1,0 +1,12 @@
+version: "3"
+
+services:
+  app:
+    image: nginx:latest   # unpinned tag
+    privileged: true      #  container breakout risk
+    ports:
+      - "80:80"
+    volumes:
+      - /:/host           # host filesystem exposed
+    environment:
+      - DEBUG=true
