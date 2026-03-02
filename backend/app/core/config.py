@@ -72,7 +72,7 @@ class Settings(BaseSettings):
     # http://host.docker.internal:11434
     ollama_base_url: str = "http://127.0.0.1:11434"
     sandbox_llm_model: str = "phi3:mini"
-    sandbox_llm_timeout_seconds: float = 8.0
+    sandbox_llm_timeout_seconds: float = 60.0
     sandbox_llm_temperature: float = 0.0
     sandbox_llm_max_output_chars: int = 8192
 
