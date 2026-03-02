@@ -30,6 +30,7 @@ services:
       - DOCKCLEANER_OLLAMA_BASE_URL=http://host.docker.internal:11434
       - DOCKCLEANER_SANDBOX_LLM_MODEL=phi3:mini
       - DOCKCLEANER_SANDBOX_LLM_TEMPERATURE=0.0
+      - DOCKCLEANER_SOLIDITYGUARD_URL=http://solidityguard:8000
     volumes:
       - ./data/storage:/app/data/storage
       - ./data/scans:/app/data/scans
@@ -62,5 +63,15 @@ services:
     volumes:
       - ./data/storage:/data/storage
       - ./trivy-secret.yaml:/etc/trivy/trivy-secret.yaml:ro
+
+  solidityguard:
+    build:
+      context: ../SolidityGuard
+      dockerfile: docker/Dockerfile.web
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./data/solidity:/app/data
+    restart: unless-stopped
 
 volumes: {}
