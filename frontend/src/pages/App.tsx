@@ -12,6 +12,7 @@ const Dashboard = lazy(() => import('../components/Dashboard'));
 const AuditDashboard = lazy(() => import('../components/AuditDashboard'));
 const Infrastructure = lazy(() => import('../components/Infrastructure'));
 const Sandbox = lazy(() => import('../components/Sandbox'))
+const SolidityScanner = lazy(() => import('../components/SolidityScanner'))
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('scanner');
@@ -20,6 +21,8 @@ const App: React.FC = () => {
     switch (activeTab) {
       case 'scanner':
         return <Scanner />;
+      case 'solidity':
+        return <SolidityScanner />;
       case 'sandbox':
         return <AuditDashboard />;
       case 'collections':
