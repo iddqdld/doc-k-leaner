@@ -10,6 +10,7 @@ interface LayoutProps {
 const navItems = [
   { id: 'sandbox', label: 'Audit' },
   { id: 'scanner', label: 'Analyse Fichiers' },
+  { id: 'solidity', label: 'Solidity Scanner' },
   { id: 'collections', label: 'Sandbox' },
   { id: 'ressources', label: 'Ressources' },
   { id: 'demande', label: "Demande d'informations" },
