@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Markdown from 'react-markdown';
 import { validateSandboxInput, SandboxValidationResponse } from '../services/fileApi';
 
 const MAX_CHARS = 4096;
@@ -118,13 +119,9 @@ const Sandbox: React.FC = () => {
               Copier
             </button>
           </div>
-          <textarea
-            id="sandbox-output"
-            value={output.sanitized_text}
-            readOnly
-            rows={8}
-            className="w-full border border-gray-300 rounded-md p-3 text-sm font-mono bg-gray-50 text-gray-900"
-          />
+          <div className="w-full border border-gray-300 rounded-md p-3 text-sm font-mono bg-gray-50 text-gray-900 min-h-[12rem] overflow-y-auto overflow-x-hidden [word-break:break-word] [overflow-wrap:anywhere] [&_h1]:text-xl [&_h1]:font-bold [&_h1]:mt-3 [&_h1]:mb-2 [&_h2]:text-lg [&_h2]:font-bold [&_h2]:mt-3 [&_h2]:mb-2 [&_h3]:text-base [&_h3]:font-bold [&_h3]:mt-2 [&_h3]:mb-1 [&_p]:mb-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:mb-2 [&_li]:mb-1 [&_strong]:font-bold [&_em]:italic [&_code]:bg-gray-200 [&_code]:px-1 [&_code]:rounded [&_pre]:bg-gray-900 [&_pre]:text-green-300 [&_pre]:p-3 [&_pre]:rounded [&_pre]:my-2 [&_pre]:whitespace-pre-wrap [&_pre_code]:bg-transparent [&_pre_code]:px-0 [&_blockquote]:border-l-4 [&_blockquote]:border-gray-300 [&_blockquote]:pl-3 [&_blockquote]:italic [&_blockquote]:text-gray-600">
+            <Markdown>{output.sanitized_text}</Markdown>
+          </div>
           <div className="flex justify-between text-xs text-gray-500">
             <span>Modèle&nbsp;: {output.model}</span>
             <span>Longueur d&apos;entrée&nbsp;: {output.input_length}</span>
