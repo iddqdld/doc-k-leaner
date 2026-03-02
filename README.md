@@ -53,6 +53,14 @@ pull the model we are using
 
     ollama pull phi3:mini
 
+to stop 
+
+    ollama stop phi3:mini
+
+to run 
+
+    ollama run phi3:mini
+
 # git tree 
 
 to use in the current repo only type this in bash
