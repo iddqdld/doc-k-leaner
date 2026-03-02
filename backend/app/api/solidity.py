@@ -222,8 +222,8 @@ async def get_scan_status(scan_id: str, db=Depends(get_db)):
             await db.commit()
 
             return SolidityScanStatus(
-                scan_id=scan_id,
-                contract_id=row[1],
+                scan_id=str(row[0]),
+                contract_id=str(row[1]),
                 guard_audit_id=guard_audit_id,
                 mode=row[3],
                 status=live_status,
@@ -242,9 +242,9 @@ async def get_scan_status(scan_id: str, db=Depends(get_db)):
             logger.warning("Failed to poll SolidityGuard for %s: %s", scan_id, exc)
 
     return SolidityScanStatus(
-        scan_id=scan_id,
-        contract_id=row[1],
-        guard_audit_id=guard_audit_id,
+        scan_id=str(row[0]),
+        contract_id=str(row[1]),
+        guard_audit_id=str(row[2]),
         mode=row[3],
         status=db_status,
         score=row[5],
@@ -281,8 +281,8 @@ async def get_scan_report(scan_id: str, db=Depends(get_db)):
         raise HTTPException(status_code=409, detail="Scan not yet complete")
 
     return SolidityScanReport(
-        scan_id=row[0],
-        contract_id=row[1],
+        scan_id=str(row[0]),
+        contract_id=str(row[1]),
         filename=row[10],
         mode=row[2],
         status=row[3],
@@ -349,8 +349,8 @@ async def list_scans(limit: int = 50, db=Depends(get_db)):
 
     return [
         SolidityScanRecord(
-            scan_id=r[0],
-            contract_id=r[1],
+            scan_id=str(r[0]),
+            contract_id=str(r[1]),
             filename=r[2],
             mode=r[3],
             status=r[4],
