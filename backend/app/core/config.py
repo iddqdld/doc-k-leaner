@@ -58,6 +58,7 @@ class Settings(BaseSettings):
 
     # SolidityGuard microservice
     solidityguard_url: str = "http://solidityguard:8000"
+    solidityguard_jwt_secret: str = "dockcleaner-local-secret"
     solidity_storage_dir: str = "data/solidity"
     solidity_allowed_extensions: set[str] = {".sol"}
     solidity_max_file_size_mb: int = 5

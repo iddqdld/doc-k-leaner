@@ -70,6 +70,8 @@ services:
       dockerfile: docker/Dockerfile.web
     ports:
       - "8001:8000"
+    environment:
+      - JWT_SECRET=dockcleaner-local-secret
     volumes:
       - ./data/solidity:/app/data
     restart: unless-stopped
