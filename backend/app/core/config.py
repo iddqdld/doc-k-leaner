@@ -56,6 +56,12 @@ class Settings(BaseSettings):
         "application/octet-stream",  # Fallback for unknown text files
     }
 
+    # SolidityGuard microservice
+    solidityguard_url: str = "http://solidityguard:8000"
+    solidity_storage_dir: str = "data/solidity"
+    solidity_allowed_extensions: set[str] = {".sol"}
+    solidity_max_file_size_mb: int = 5
+
     # Sandbox + local LLM settings
     sandbox_max_input_chars: int = 4096
     sandbox_rate_limit_window_seconds: int = 60
