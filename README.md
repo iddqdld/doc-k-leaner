@@ -17,6 +17,10 @@ all work should be done like this
     git pull origin dev
     git checkout -b feature/nom de truc que vous develope
 
+# There is README file in each folder
+
+consult them for code explanations for each branch of this project
+
 # quand le truc est pret
 
     git add .
@@ -38,6 +42,16 @@ fait la documentation pour tous les trucs que vous ajoute, comme ca on pourrait 
 vous avez un fichier README dans votre folder pour ca.
 
 fait attention a bien push tous vos features quand ils sont bien fonctionelle. n'oublie pas verifie que vos changement ne rester pas dans gitignore.
+
+# ollama install guide
+
+in powershell install ollama
+
+    irm https://ollama.com/install.ps1 | iex
+
+pull the model we are using
+
+    ollama pull phi3:mini
 
 # git tree 
 
