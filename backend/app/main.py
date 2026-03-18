@@ -9,7 +9,8 @@ from redis import asyncio as aioredis
 from app.api.files import router as files_router
 from app.api.news import router as news_router
 from app.api.stats import router as stats_router
-from app.api.news import router as news_router
+from app.api.sandbox import router as sandbox_router
+from app.api.solidity import router as solidity_router
 from app.db.postgres import init_db
 from app.core.config import settings
 
@@ -40,7 +41,8 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Configure appropriately for production
-    allow_credentials=True,
+    # With wildcard origins, credentials must be disabled (browser/CORS spec).
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -50,7 +52,8 @@ app.add_middleware(
 app.include_router(files_router)
 app.include_router(news_router)
 app.include_router(stats_router)
-app.include_router(news_router)
+app.include_router(sandbox_router)
+app.include_router(solidity_router)
 
 
 @app.get("/")

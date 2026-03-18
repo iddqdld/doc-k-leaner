@@ -1,0 +1,13 @@
+{
+    "auth": {
+      "enabled": false
+    },
+    "admin": {
+      "username": "admin",
+      "password": "admin"
+    },
+    "logging": {
+      "level": "debug"
+    }
+  }
+  

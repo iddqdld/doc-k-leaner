@@ -12,10 +12,10 @@ class Settings(BaseSettings):
     github_repo: str = "iddqdld/doc-k-leaner"
     github_branch: str = "dev"
     trivy_secret_config: str = "/etc/trivy/trivy-secret.yaml"
-    
+
     max_file_size_mb: int = 20
     max_file_size_bytes: int = 20 * 1024 * 1024  # 20MB comme bytes
-    
+
     # whitelist
     allowed_extensions: set[str] = {
         # Docker & Container configs
@@ -42,7 +42,7 @@ class Settings(BaseSettings):
         # Filesystem demo/support
         ".txt",
     }
-    
+
     # Allowed MIME types (pour notre service de validation interne)
     allowed_mime_types: set[str] = {
         "text/plain",
@@ -55,7 +55,27 @@ class Settings(BaseSettings):
         "application/x-sh",
         "application/octet-stream",  # Fallback for unknown text files
     }
-    
+
+    # SolidityGuard microservice
+    solidityguard_url: str = "http://solidityguard:8000"
+    solidityguard_jwt_secret: str = "dockcleaner-local-secret"
+    solidity_storage_dir: str = "data/solidity"
+    solidity_allowed_extensions: set[str] = {".sol"}
+    solidity_max_file_size_mb: int = 5
+
+    # Sandbox + local LLM settings
+    sandbox_max_input_chars: int = 4096
+    sandbox_rate_limit_window_seconds: int = 60
+    sandbox_rate_limit_max_requests: int = 10
+
+    # Local Ollama endpoint. In Docker on Windows, prefer:
+    # http://host.docker.internal:11434
+    ollama_base_url: str = "http://127.0.0.1:11434"
+    sandbox_llm_model: str = "phi3:mini"
+    sandbox_llm_timeout_seconds: float = 60.0
+    sandbox_llm_temperature: float = 0.0
+    sandbox_llm_max_output_chars: int = 8192
+
     # prefix si on veut faire le override of the setting in some usecases, c pratique d'avoir une imo 
     class Config:
         env_prefix = "DOCKCLEANER_"  # e.g., DOCKCLEANER_MAX_FILE_SIZE_MB=50
