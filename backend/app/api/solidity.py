@@ -168,19 +168,36 @@ async def upload_and_scan(
     summary="Get scan status",
     description="Poll for scan progress. Updates from SolidityGuard if still running.",
 )
-async def get_scan_status(scan_id: str, db=Depends(get_db)):
+async def get_scan_status(
+    scan_id: str,
+    db=Depends(get_db),
+    user: dict | None = Depends(get_optional_user),
+):
     async with db.cursor() as cur:
         await cur.execute(
             """
             SELECT s.id, s.contract_id, s.guard_audit_id, s.mode, s.status,
-                   s.score, s.severity_counts, s.created_at, s.completed_at
-            FROM solidity_scans s WHERE s.id = %s
+                   s.score, s.severity_counts, s.created_at, s.completed_at,
+                   c.owner_id
+            FROM solidity_scans s
+            JOIN solidity_contracts c ON c.id = s.contract_id
+            WHERE s.id = %s
             """,
             (scan_id,),
         )
         row = await cur.fetchone()
 
     if not row:
+        raise HTTPException(status_code=404, detail="Scan not found")
+
+    contract_owner_id = row[9]
+    contract_owner_id_str = str(contract_owner_id) if contract_owner_id else None
+    if user is None:
+        # Anonymous users must not see recent scans, but they are allowed to
+        # fetch scans created by anonymous users (owner_id IS NULL).
+        if contract_owner_id_str is not None:
+            raise HTTPException(status_code=404, detail="Scan not found")
+    elif user.get("role") != "admin" and contract_owner_id_str != user["id"]:
         raise HTTPException(status_code=404, detail="Scan not found")
 
     db_status = row[4]
@@ -263,13 +280,17 @@ async def get_scan_status(scan_id: str, db=Depends(get_db)):
     summary="Get full scan report",
     description="Returns findings, severity counts, score, and markdown report",
 )
-async def get_scan_report(scan_id: str, db=Depends(get_db)):
+async def get_scan_report(
+    scan_id: str,
+    db=Depends(get_db),
+    user: dict | None = Depends(get_optional_user),
+):
     async with db.cursor() as cur:
         await cur.execute(
             """
             SELECT s.id, s.contract_id, s.mode, s.status, s.score,
                    s.severity_counts, s.findings, s.report_markdown,
-                   s.created_at, s.completed_at, c.filename
+                   s.created_at, s.completed_at, c.filename, c.owner_id
             FROM solidity_scans s
             JOIN solidity_contracts c ON c.id = s.contract_id
             WHERE s.id = %s
@@ -280,6 +301,16 @@ async def get_scan_report(scan_id: str, db=Depends(get_db)):
 
     if not row:
         raise HTTPException(status_code=404, detail="Scan not found")
+
+    contract_owner_id = row[11]
+    contract_owner_id_str = str(contract_owner_id) if contract_owner_id else None
+    if user is None:
+        # Anonymous users can fetch scans created by anonymous users (owner_id IS NULL).
+        if contract_owner_id_str is not None:
+            raise HTTPException(status_code=404, detail="Scan not found")
+    elif user.get("role") != "admin" and contract_owner_id_str != user["id"]:
+        raise HTTPException(status_code=404, detail="Scan not found")
+
     if row[3] != "complete":
         raise HTTPException(status_code=409, detail="Scan not yet complete")
 
@@ -303,16 +334,34 @@ async def get_scan_report(scan_id: str, db=Depends(get_db)):
     summary="Download PDF report",
     description="Download the audit report as a styled PDF",
 )
-async def get_scan_pdf(scan_id: str, db=Depends(get_db)):
+async def get_scan_pdf(
+    scan_id: str,
+    db=Depends(get_db),
+    user: dict | None = Depends(get_optional_user),
+):
     async with db.cursor() as cur:
         await cur.execute(
-            "SELECT guard_audit_id, status FROM solidity_scans WHERE id = %s",
+            """
+            SELECT s.guard_audit_id, s.status, c.owner_id
+            FROM solidity_scans s
+            JOIN solidity_contracts c ON c.id = s.contract_id
+            WHERE s.id = %s
+            """,
             (scan_id,),
         )
         row = await cur.fetchone()
 
     if not row:
         raise HTTPException(status_code=404, detail="Scan not found")
+    contract_owner_id = row[2]
+    contract_owner_id_str = str(contract_owner_id) if contract_owner_id else None
+    if user is None:
+        # Anonymous users can fetch scans created by anonymous users (owner_id IS NULL).
+        if contract_owner_id_str is not None:
+            raise HTTPException(status_code=404, detail="Scan not found")
+    elif user.get("role") != "admin" and contract_owner_id_str != user["id"]:
+        raise HTTPException(status_code=404, detail="Scan not found")
+
     if row[1] != "complete":
         raise HTTPException(status_code=409, detail="Scan not yet complete")
 
@@ -334,20 +383,43 @@ async def get_scan_pdf(scan_id: str, db=Depends(get_db)):
     summary="List all Solidity scans",
     description="Returns recent scans with severity summaries",
 )
-async def list_scans(limit: int = 50, db=Depends(get_db)):
+async def list_scans(
+    limit: int = 50,
+    user: dict | None = Depends(get_optional_user),
+    db=Depends(get_db),
+):
     limit = max(1, min(limit, 200))
+
+    if user is None:
+        # Anonymous users must not see recent scans.
+        return []
+
     async with db.cursor() as cur:
-        await cur.execute(
-            """
-            SELECT s.id, s.contract_id, c.filename, s.mode, s.status,
-                   s.score, s.severity_counts, s.created_at
-            FROM solidity_scans s
-            JOIN solidity_contracts c ON c.id = s.contract_id
-            ORDER BY s.created_at DESC
-            LIMIT %s
-            """,
-            (limit,),
-        )
+        if user.get("role") == "admin":
+            await cur.execute(
+                """
+                SELECT s.id, s.contract_id, c.filename, s.mode, s.status,
+                       s.score, s.severity_counts, s.created_at
+                FROM solidity_scans s
+                JOIN solidity_contracts c ON c.id = s.contract_id
+                ORDER BY s.created_at DESC
+                LIMIT %s
+                """,
+                (limit,),
+            )
+        else:
+            await cur.execute(
+                """
+                SELECT s.id, s.contract_id, c.filename, s.mode, s.status,
+                       s.score, s.severity_counts, s.created_at
+                FROM solidity_scans s
+                JOIN solidity_contracts c ON c.id = s.contract_id
+                WHERE c.owner_id = %s
+                ORDER BY s.created_at DESC
+                LIMIT %s
+                """,
+                (user["id"], limit),
+            )
         rows = await cur.fetchall()
 
     return [
