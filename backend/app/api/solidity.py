@@ -30,6 +30,7 @@ from app.schemas.solidity import (
     SolidityScanStatus,
     SolidityUploadResponse,
 )
+from app.core.deps import get_optional_user
 from app.services import solidity_service
 
 logger = logging.getLogger(__name__)
@@ -66,6 +67,7 @@ async def upload_and_scan(
     files: list[UploadFile] = File(...),
     mode: str = Form(default="standard"),
     db=Depends(get_db),
+    user: dict | None = Depends(get_optional_user),
 ):
     if mode not in ("quick", "standard"):
         raise HTTPException(status_code=400, detail="Mode must be 'quick' or 'standard'")
@@ -98,13 +100,14 @@ async def upload_and_scan(
         with open(os.path.join(contract_dir, fname), "wb") as fh:
             fh.write(content)
 
+    owner_id = user["id"] if user else None
     async with db.cursor() as cur:
         await cur.execute(
             """
-            INSERT INTO solidity_contracts (id, filename, size, storage_path, created_at)
-            VALUES (%s, %s, %s, %s, %s)
+            INSERT INTO solidity_contracts (id, filename, size, storage_path, created_at, owner_id)
+            VALUES (%s, %s, %s, %s, %s, %s)
             """,
-            (contract_id, first_filename, total_size, contract_dir, now),
+            (contract_id, first_filename, total_size, contract_dir, now, owner_id),
         )
     await db.commit()
 
