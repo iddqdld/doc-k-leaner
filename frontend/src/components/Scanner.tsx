@@ -579,7 +579,7 @@ const Scanner: React.FC = () => {
             ))}
 
             <div className="pt-2 text-center">
-              <button className="text-orange-500 text-xs font-bold hover:underline">Voir plus</button>
+              <a href="https://github.com/iddqdld/doc-k-leaner" target="_blank" rel="noopener noreferrer" className="text-orange-500 text-xs font-bold hover:underline">Voir plus</a>
             </div>
           </div>
         </div>
