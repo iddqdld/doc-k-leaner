@@ -203,7 +203,7 @@ async def get_severity_over_time(conn, days: int = 30, offset: int = 0) -> list[
 async def get_file_type_stats(conn) -> list[FileTypeCount]:
     async with conn.cursor() as cur:
         await cur.execute(
-            """
+            r"""
             SELECT
                 COALESCE(
                     NULLIF(LOWER(SUBSTRING(filename FROM '\.([^.]+)$')), ''),
