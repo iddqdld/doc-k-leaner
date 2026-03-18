@@ -6,6 +6,7 @@ from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
 from redis import asyncio as aioredis
 
+from app.api.auth import router as auth_router
 from app.api.files import router as files_router
 from app.api.news import router as news_router
 from app.api.stats import router as stats_router
@@ -49,6 +50,7 @@ app.add_middleware(
 
 
 # Include routers
+app.include_router(auth_router)
 app.include_router(files_router)
 app.include_router(news_router)
 app.include_router(stats_router)
