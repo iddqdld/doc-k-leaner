@@ -10,13 +10,13 @@ from app.schemas.stats import (
 )
 
 
-async def insert_file_record(conn, metadata: FileMetadata, storage_path: str) -> None:
+async def insert_file_record(conn, metadata: FileMetadata, storage_path: str, owner_id: str | None = None) -> None:
     async with conn.cursor() as cur:
         await cur.execute(
             """
             INSERT INTO files (
-                id, filename, content_type, size, source, original_url, storage_path, created_at
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                id, filename, content_type, size, source, original_url, storage_path, created_at, owner_id
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
             (
                 metadata.file_id,
@@ -27,6 +27,7 @@ async def insert_file_record(conn, metadata: FileMetadata, storage_path: str) ->
                 metadata.original_url,
                 storage_path,
                 metadata.uploaded_at,
+                owner_id,
             ),
         )
     await conn.commit()
@@ -293,15 +294,15 @@ async def get_solidity_scans_over_time(conn, days: int = 30) -> list[SolidityDai
     return [SolidityDailyScans(date=row[0].isoformat(), count=row[1]) for row in rows]
 
 
-async def insert_sandbox_usage(conn, input_text: str) -> None:
+async def insert_sandbox_usage(conn, input_text: str, owner_id: str | None = None) -> None:
     line_count = input_text.count('\n') + (1 if input_text else 0)
     async with conn.cursor() as cur:
         await cur.execute(
             """
-            INSERT INTO sandbox_usage (id, input_length, line_count, created_at)
-            VALUES (%s, %s, %s, NOW())
+            INSERT INTO sandbox_usage (id, input_length, line_count, created_at, owner_id)
+            VALUES (%s, %s, %s, NOW(), %s)
             """,
-            (str(uuid.uuid4()), len(input_text), line_count),
+            (str(uuid.uuid4()), len(input_text), line_count, owner_id),
         )
     await conn.commit()
 
