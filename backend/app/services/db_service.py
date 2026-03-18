@@ -331,6 +331,99 @@ async def get_global_overview(conn) -> GlobalOverview:
     )
 
 
+async def get_admin_overview(conn) -> dict:
+    async with conn.cursor() as cur:
+        await cur.execute("SELECT COUNT(*) FROM users")
+        total_users = (await cur.fetchone())[0]
+        await cur.execute(
+            "SELECT COUNT(*) FROM users WHERE created_at >= NOW() - INTERVAL '7 days'"
+        )
+        reg_7 = (await cur.fetchone())[0]
+        await cur.execute(
+            "SELECT COUNT(*) FROM users WHERE created_at >= NOW() - INTERVAL '30 days'"
+        )
+        reg_30 = (await cur.fetchone())[0]
+        await cur.execute(
+            """
+            SELECT COUNT(*)::float / NULLIF(COUNT(DISTINCT owner_id), 0)
+            FROM (
+                SELECT owner_id FROM files WHERE owner_id IS NOT NULL
+                UNION ALL
+                SELECT owner_id FROM solidity_contracts WHERE owner_id IS NOT NULL
+            ) x
+            """
+        )
+        row = await cur.fetchone()
+        avg_scans = float(row[0] or 0) if row and row[0] is not None else 0.0
+        await cur.execute(
+            """
+            SELECT COUNT(DISTINCT owner_id) FROM (
+                SELECT owner_id FROM files WHERE owner_id IS NOT NULL
+                UNION
+                SELECT owner_id FROM solidity_contracts WHERE owner_id IS NOT NULL
+            ) d
+            """
+        )
+        users_with = (await cur.fetchone())[0] or 0
+    return {
+        "total_users": total_users,
+        "registrations_last_7_days": reg_7,
+        "registrations_last_30_days": reg_30,
+        "avg_scans_per_user": round(avg_scans, 2),
+        "users_with_owned_scans": users_with,
+    }
+
+
+async def list_users_for_admin(conn) -> list[dict]:
+    async with conn.cursor() as cur:
+        await cur.execute(
+            """
+            SELECT u.id, u.email, u.name, u.role, u.provider, u.created_at,
+                COALESCE(f.cnt, 0) + COALESCE(s.cnt, 0) AS owned_items
+            FROM users u
+            LEFT JOIN (SELECT owner_id, COUNT(*) AS cnt FROM files WHERE owner_id IS NOT NULL GROUP BY owner_id) f
+                ON f.owner_id = u.id
+            LEFT JOIN (SELECT owner_id, COUNT(*) AS cnt FROM solidity_contracts WHERE owner_id IS NOT NULL GROUP BY owner_id) s
+                ON s.owner_id = u.id
+            ORDER BY u.created_at DESC
+            """
+        )
+        rows = await cur.fetchall()
+    return [
+        {
+            "id": str(r[0]),
+            "email": r[1],
+            "name": r[2],
+            "role": r[3],
+            "provider": r[4],
+            "created_at": r[5].isoformat() if r[5] else "",
+            "owned_items": int(r[6] or 0),
+        }
+        for r in rows
+    ]
+
+
+async def count_admins(conn) -> int:
+    async with conn.cursor() as cur:
+        await cur.execute("SELECT COUNT(*) FROM users WHERE role = 'admin'")
+        return (await cur.fetchone())[0]
+
+
+async def get_user_role(conn, user_id: str) -> str | None:
+    async with conn.cursor() as cur:
+        await cur.execute("SELECT role FROM users WHERE id = %s", (user_id,))
+        row = await cur.fetchone()
+    return row[0] if row else None
+
+
+async def delete_user_by_id(conn, user_id: str) -> bool:
+    async with conn.cursor() as cur:
+        await cur.execute("DELETE FROM users WHERE id = %s", (user_id,))
+        deleted = cur.rowcount and cur.rowcount > 0
+    await conn.commit()
+    return bool(deleted)
+
+
 async def get_user_scan_history(conn, user_id: str) -> list[dict]:
     """Return files + solidity contracts owned by a user, newest first."""
     async with conn.cursor() as cur:

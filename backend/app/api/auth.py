@@ -11,11 +11,15 @@ Routes:
 
 from __future__ import annotations
 
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException
 
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, require_admin
 from app.db.postgres import get_db
 from app.schemas.auth import (
+    AdminOverview,
+    AdminUserRow,
     GoogleAuthRequest,
     LoginRequest,
     RegisterRequest,
@@ -32,7 +36,14 @@ from app.services.auth_service import (
     verify_google_token,
     verify_password,
 )
-from app.services.db_service import get_user_scan_history
+from app.services.db_service import (
+    count_admins,
+    delete_user_by_id,
+    get_admin_overview,
+    get_user_role,
+    get_user_scan_history,
+    list_users_for_admin,
+)
 
 router = APIRouter(
     prefix="/api/auth",
@@ -116,3 +127,37 @@ async def my_history(
     db=Depends(get_db),
 ):
     return await get_user_scan_history(db, user["id"])
+
+
+@router.get("/admin/overview", response_model=AdminOverview)
+async def admin_overview(_admin: dict = Depends(require_admin), db=Depends(get_db)):
+    data = await get_admin_overview(db)
+    return AdminOverview(**data)
+
+
+@router.get("/admin/users", response_model=list[AdminUserRow])
+async def admin_list_users(_admin: dict = Depends(require_admin), db=Depends(get_db)):
+    rows = await list_users_for_admin(db)
+    return [AdminUserRow(**r) for r in rows]
+
+
+@router.delete("/admin/users/{user_id}")
+async def admin_delete_user(
+    user_id: UUID,
+    admin: dict = Depends(require_admin),
+    db=Depends(get_db),
+):
+    tid = str(user_id)
+    if tid == admin["id"]:
+        raise HTTPException(status_code=400, detail="Cannot delete your own account")
+    role = await get_user_role(db, tid)
+    if role is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    if role == "admin":
+        n = await count_admins(db)
+        if n <= 1:
+            raise HTTPException(status_code=400, detail="Cannot delete the last admin")
+    ok = await delete_user_by_id(db, tid)
+    if not ok:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"message": "User deleted", "id": tid}

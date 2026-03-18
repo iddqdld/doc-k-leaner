@@ -39,3 +39,21 @@ class ScanHistoryItem(BaseModel):
     size: int
     scan_type: str
     created_at: str
+
+
+class AdminOverview(BaseModel):
+    total_users: int
+    registrations_last_7_days: int
+    registrations_last_30_days: int
+    avg_scans_per_user: float
+    users_with_owned_scans: int
+
+
+class AdminUserRow(BaseModel):
+    id: str
+    email: str
+    name: str
+    role: str
+    provider: str
+    created_at: str
+    owned_items: int

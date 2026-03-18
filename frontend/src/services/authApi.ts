@@ -99,3 +99,40 @@ export async function getMyHistory(): Promise<ScanHistoryItem[]> {
     headers: authHeaders(),
   });
 }
+
+export interface AdminOverview {
+  total_users: number;
+  registrations_last_7_days: number;
+  registrations_last_30_days: number;
+  avg_scans_per_user: number;
+  users_with_owned_scans: number;
+}
+
+export interface AdminUserRow {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  provider: string;
+  created_at: string;
+  owned_items: number;
+}
+
+export async function getAdminOverview(): Promise<AdminOverview> {
+  return authRequest<AdminOverview>('/api/auth/admin/overview', {
+    headers: authHeaders(),
+  });
+}
+
+export async function getAdminUsers(): Promise<AdminUserRow[]> {
+  return authRequest<AdminUserRow[]>('/api/auth/admin/users', {
+    headers: authHeaders(),
+  });
+}
+
+export async function adminDeleteUser(userId: string): Promise<void> {
+  await authRequest(`/api/auth/admin/users/${userId}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
+}
