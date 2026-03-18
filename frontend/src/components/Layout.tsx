@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import AuthModal from './AuthModal';
 
@@ -8,12 +8,11 @@ interface LayoutProps {
   setActiveTab: (tab: string) => void;
 }
 
-const navItems = [
+const baseNavItems = [
   { id: 'sandbox', label: 'Dashboard' },
   { id: 'scanner', label: 'Analyse Fichiers' },
   { id: 'solidity', label: 'Solidity Scanner' },
   { id: 'collections', label: 'Sandbox' },
-  { id: 'ressources', label: 'Ressources' },
   { id: 'infrastructure', label: 'Infrastructure' },
 ];
 
@@ -29,6 +28,18 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab }) =>
     },
     [setActiveTab],
   );
+
+  const navItems = [
+    ...baseNavItems.slice(0, 4),
+    ...(user?.role === 'admin' ? [{ id: 'ressources', label: 'Ressources' }] : []),
+    baseNavItems[4],
+  ];
+
+  useEffect(() => {
+    if (activeTab === 'ressources' && (!user || user.role !== 'admin')) {
+      setActiveTab('scanner');
+    }
+  }, [activeTab, user, setActiveTab]);
 
   const allNavItems = user
     ? [...navItems, { id: 'history', label: 'Mon historique' }]

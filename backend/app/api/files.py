@@ -53,7 +53,7 @@ from app.services.file_service import (
 from app.services.storage_service import build_storage_path, save_file_to_disk, delete_file_from_disk
 from app.services.scan_service import run_trivy_scan, run_trivy_image_scan, build_scan_output_path
 from app.services.url_fetch_service import RemoteFileTooLargeError, UnsafeFetchURLError, fetch_url_with_limit
-from app.core.deps import get_optional_user
+from app.core.deps import get_optional_user, require_admin
 
 # setup example @router.post("/upload") -> POST /api/files/upload
 router = APIRouter(
@@ -568,7 +568,8 @@ async def scan_image(
 async def list_admin_files(
     request: Request,
     limit: int = 50,
-    db = Depends(get_db),
+    db=Depends(get_db),
+    _admin=Depends(require_admin),
 ):
     limit = max(1, min(int(limit), 200))
     records = await list_file_records(db, limit=limit)
