@@ -72,6 +72,16 @@ async def init_db() -> None:
                 )
                 """
             )
+            await cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS sandbox_usage (
+                    id UUID PRIMARY KEY,
+                    input_length INT NOT NULL,
+                    line_count INT NOT NULL,
+                    created_at TIMESTAMPTZ NOT NULL
+                )
+                """
+            )
         await conn.commit()
     finally:
         await conn.close()

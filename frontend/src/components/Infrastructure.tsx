@@ -15,7 +15,7 @@ const Infrastructure: React.FC = () => {
           <h2 className="text-2xl font-bold text-gray-900">Kubernetes Cluster Overview</h2>
           <p className="text-gray-500">Real-time status of your connected infrastructure nodes.</p>
         </div>
-        <button className="bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors">
+        <button className="bg-[#3a165d] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#5d2e8e] transition-colors">
           Connect New Cluster
         </button>
       </div>
