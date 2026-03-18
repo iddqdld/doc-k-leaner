@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTheme } from '../contexts/ThemeContext';
 import {
   Chart as ChartJS,
   ArcElement,
@@ -72,8 +73,8 @@ const SectionDivider: React.FC<{ label: string; sublabel?: string }> = ({ label,
   <div className="flex items-center gap-4 pt-4">
     <div className="flex-1 h-px bg-gradient-to-r from-transparent via-[#5d2e8e]/30 to-transparent" />
     <div className="text-center">
-      <span className="text-sm font-bold text-[#5d2e8e] tracking-wide uppercase">{label}</span>
-      {sublabel && <p className="text-[10px] text-gray-400 mt-0.5">{sublabel}</p>}
+      <span className="text-sm font-bold text-[#5d2e8e] dark:text-violet-400 tracking-wide uppercase">{label}</span>
+      {sublabel && <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">{sublabel}</p>}
     </div>
     <div className="flex-1 h-px bg-gradient-to-r from-transparent via-[#5d2e8e]/30 to-transparent" />
   </div>
@@ -81,13 +82,14 @@ const SectionDivider: React.FC<{ label: string; sublabel?: string }> = ({ label,
 
 /* ── Stat pill for Solidity overview ── */
 const StatPill: React.FC<{ label: string; value: string | number; accent?: string }> = ({ label, value, accent }) => (
-  <div className="bg-white rounded-lg border border-gray-200 shadow-sm px-5 py-4 text-center">
+  <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm px-5 py-4 text-center">
     <div className="text-2xl font-bold" style={accent ? { color: accent } : undefined}>{value}</div>
-    <div className="text-[10px] text-gray-400 uppercase tracking-wide mt-1">{label}</div>
+    <div className="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wide mt-1">{label}</div>
   </div>
 );
 
 const AuditDashboard: React.FC = () => {
+  const { isDark } = useTheme();
   const [globalStats, setGlobalStats] = useState<GlobalOverview | null>(null);
   const [stats, setStats] = useState<AuditStats | null>(null);
   const [scansTimeline, setScansTimeline] = useState<DailyScans[]>([]);
@@ -188,12 +190,12 @@ const AuditDashboard: React.FC = () => {
     datasets: [{
       data: stats ? [stats.critical, stats.high, stats.medium, stats.low] : [],
       backgroundColor: [SEVERITY_COLORS.critical, SEVERITY_COLORS.high, SEVERITY_COLORS.medium, SEVERITY_COLORS.low],
-      borderColor: '#ffffff',
+      borderColor: isDark ? '#111827' : '#ffffff',
       borderWidth: 2,
       hoverBorderWidth: 0,
       hoverOffset: 6,
     }],
-  }), [stats]);
+  }), [stats, isDark]);
 
   const donutOptions = useMemo(() => ({
     responsive: true,
@@ -228,6 +230,10 @@ const AuditDashboard: React.FC = () => {
     }],
   }), [scansTimeline]);
 
+  const gridColor = isDark ? '#374151' : '#f3f4f6';
+  const tickColor = isDark ? '#9ca3af' : '#9ca3af';
+  const legendColor = isDark ? '#9ca3af' : '#6b7280';
+
   const lineOptions = useMemo(() => ({
     responsive: true,
     maintainAspectRatio: false,
@@ -236,10 +242,10 @@ const AuditDashboard: React.FC = () => {
       tooltip: chartTooltip,
     },
     scales: {
-      x: { grid: { display: false }, ticks: { color: '#9ca3af', font: { size: 10 }, maxTicksLimit: 10 } },
-      y: { beginAtZero: true, grid: { color: '#f3f4f6' }, ticks: { color: '#9ca3af', font: { size: 10 }, precision: 0 } },
+      x: { grid: { display: false }, ticks: { color: tickColor, font: { size: 10 }, maxTicksLimit: 10 } },
+      y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: tickColor, font: { size: 10 }, precision: 0 } },
     },
-  }), []);
+  }), [gridColor, tickColor]);
 
   const severityAreaData = useMemo(() => ({
     labels: severityTimeline.map((d) => formatDate(d.date)),
@@ -258,14 +264,14 @@ const AuditDashboard: React.FC = () => {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { position: 'bottom' as const, labels: { boxWidth: 10, font: { size: 11 }, color: '#6b7280', padding: 16 } },
+      legend: { position: 'bottom' as const, labels: { boxWidth: 10, font: { size: 11 }, color: legendColor, padding: 16 } },
       tooltip: chartTooltip,
     },
     scales: {
-      x: { grid: { display: false }, ticks: { color: '#9ca3af', font: { size: 10 }, maxTicksLimit: 10 } },
-      y: { stacked: true, beginAtZero: true, grid: { color: '#f3f4f6' }, ticks: { color: '#9ca3af', font: { size: 10 }, precision: 0 } },
+      x: { grid: { display: false }, ticks: { color: tickColor, font: { size: 10 }, maxTicksLimit: 10 } },
+      y: { stacked: true, beginAtZero: true, grid: { color: gridColor }, ticks: { color: tickColor, font: { size: 10 }, precision: 0 } },
     },
-  }), []);
+  }), [gridColor, tickColor, legendColor]);
 
   const fileTypeBarData = useMemo(() => ({
     labels: fileTypes.map((f) => `.${f.file_type}`),
@@ -284,30 +290,30 @@ const AuditDashboard: React.FC = () => {
     indexAxis: 'y' as const,
     plugins: { legend: { display: false }, tooltip: chartTooltip },
     scales: {
-      x: { beginAtZero: true, grid: { color: '#f3f4f6' }, ticks: { color: '#9ca3af', font: { size: 10 }, precision: 0 } },
-      y: { grid: { display: false }, ticks: { color: '#6b7280', font: { size: 11 } } },
+      x: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: tickColor, font: { size: 10 }, precision: 0 } },
+      y: { grid: { display: false }, ticks: { color: legendColor, font: { size: 11 } } },
     },
-  }), []);
+  }), [gridColor, tickColor, legendColor]);
 
   const sourceDonutData = useMemo(() => ({
     labels: sources.map((s) => s.source),
     datasets: [{
       data: sources.map((s) => s.count),
       backgroundColor: [PURPLE_DARK, '#f97316', PURPLE_MED, '#10b981'],
-      borderColor: '#ffffff',
+      borderColor: isDark ? '#111827' : '#ffffff',
       borderWidth: 2,
     }],
-  }), [sources]);
+  }), [sources, isDark]);
 
   const sourceDonutOptions = useMemo(() => ({
     responsive: true,
     maintainAspectRatio: false,
     cutout: '60%',
     plugins: {
-      legend: { position: 'bottom' as const, labels: { boxWidth: 10, font: { size: 11 }, color: '#6b7280', padding: 16 } },
+      legend: { position: 'bottom' as const, labels: { boxWidth: 10, font: { size: 11 }, color: legendColor, padding: 16 } },
       tooltip: chartTooltip,
     },
-  }), []);
+  }), [legendColor]);
 
   /* ─── Solidity chart data ─── */
 
@@ -326,12 +332,12 @@ const AuditDashboard: React.FC = () => {
         SEVERITY_COLORS.critical, SEVERITY_COLORS.high, SEVERITY_COLORS.medium,
         SEVERITY_COLORS.low, SEVERITY_COLORS.informational,
       ],
-      borderColor: '#ffffff',
+      borderColor: isDark ? '#111827' : '#ffffff',
       borderWidth: 2,
       hoverBorderWidth: 0,
       hoverOffset: 6,
     }],
-  }), [solOverview]);
+  }), [solOverview, isDark]);
 
   const solDonutOptions = useMemo(() => ({
     responsive: true,
@@ -374,8 +380,8 @@ const AuditDashboard: React.FC = () => {
     <div className="space-y-8 animate-in fade-in duration-500 w-full max-w-6xl">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Dashboard</h2>
-          <p className="text-sm text-gray-500 mt-1">Vue d'ensemble de la sécurité</p>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Dashboard</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Vue d'ensemble de la sécurité</p>
         </div>
         <button
           className="bg-[#3a165d] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#5d2e8e] transition-colors disabled:opacity-60"
@@ -387,10 +393,10 @@ const AuditDashboard: React.FC = () => {
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-orange-500 px-4 py-3 rounded">{error}</div>
+        <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-orange-500 px-4 py-3 rounded">{error}</div>
       )}
 
-      {isLoading && !stats && <div className="text-sm text-gray-500">Chargement des statistiques...</div>}
+      {isLoading && !stats && <div className="text-sm text-gray-500 dark:text-gray-400">Chargement des statistiques...</div>}
 
       {/* ════════════════════ GLOBAL OVERVIEW ════════════════════ */}
       {globalStats && (globalStats.total_files > 0 || globalStats.sandbox_lines > 0) && (
@@ -417,16 +423,16 @@ const AuditDashboard: React.FC = () => {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {severityTotal > 0 && (
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-100 bg-[#3a165d]">
+              <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-[#3a165d]">
                   <h3 className="font-semibold text-white text-sm">Répartition par sévérité</h3>
                 </div>
                 <div className="p-6 flex items-center justify-center">
                   <div className="relative w-56 h-56">
                     <Doughnut data={donutData} options={donutOptions} />
                     <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                      <span className="text-3xl font-bold text-gray-900">{severityTotal}</span>
-                      <span className="text-xs text-gray-400">findings</span>
+                      <span className="text-3xl font-bold text-gray-900 dark:text-gray-100">{severityTotal}</span>
+                      <span className="text-xs text-gray-400 dark:text-gray-500">findings</span>
                     </div>
                   </div>
                 </div>
@@ -437,7 +443,7 @@ const AuditDashboard: React.FC = () => {
                     { label: 'Medium', color: SEVERITY_COLORS.medium, value: stats!.medium },
                     { label: 'Low', color: SEVERITY_COLORS.low, value: stats!.low },
                   ]).map((item) => (
-                    <div key={item.label} className="flex items-center gap-2 text-xs text-gray-600">
+                    <div key={item.label} className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
                       <span className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
                       {item.label}: <span className="font-semibold">{item.value}</span>
                     </div>
@@ -447,8 +453,8 @@ const AuditDashboard: React.FC = () => {
             )}
 
             {scansTimeline.length > 0 && (
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-100 bg-[#3a165d] flex items-center justify-between">
+              <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-[#3a165d] flex items-center justify-between">
                   <h3 className="font-semibold text-white text-sm">Scans par jour</h3>
                   <div className="flex items-center gap-2">
                     <span className="text-white/60 text-[10px]">{trivyRangeLabel}</span>
@@ -472,8 +478,8 @@ const AuditDashboard: React.FC = () => {
                 </div>
                 <div className="p-6 relative" style={{ height: 300 }}>
                   {isLoadingTimeline && (
-                    <div className="absolute inset-0 bg-white/60 flex items-center justify-center z-10">
-                      <span className="text-sm text-gray-400">Chargement...</span>
+                    <div className="absolute inset-0 bg-white/60 dark:bg-gray-900/60 flex items-center justify-center z-10">
+                      <span className="text-sm text-gray-400 dark:text-gray-500">Chargement...</span>
                     </div>
                   )}
                   <Line data={scansLineData} options={lineOptions} />
@@ -483,8 +489,8 @@ const AuditDashboard: React.FC = () => {
           </div>
 
           {severityTimeline.length > 0 && (
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-100 bg-[#3a165d] flex items-center justify-between">
+            <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-[#3a165d] flex items-center justify-between">
                 <h3 className="font-semibold text-white text-sm">Évolution des sévérités</h3>
                 <div className="flex items-center gap-2">
                   <span className="text-white/60 text-[10px]">{trivyRangeLabel}</span>
@@ -508,8 +514,8 @@ const AuditDashboard: React.FC = () => {
               </div>
               <div className="p-6 relative" style={{ height: 320 }}>
                 {isLoadingTimeline && (
-                  <div className="absolute inset-0 bg-white/60 flex items-center justify-center z-10">
-                    <span className="text-sm text-gray-400">Chargement...</span>
+                  <div className="absolute inset-0 bg-white/60 dark:bg-gray-900/60 flex items-center justify-center z-10">
+                    <span className="text-sm text-gray-400 dark:text-gray-500">Chargement...</span>
                   </div>
                 )}
                 <Line data={severityAreaData} options={stackedOptions} />
@@ -519,8 +525,8 @@ const AuditDashboard: React.FC = () => {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {fileTypes.length > 0 && (
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-100 bg-[#3a165d]">
+              <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-[#3a165d]">
                   <h3 className="font-semibold text-white text-sm">Types de fichiers analysés</h3>
                 </div>
                 <div className="p-6" style={{ height: Math.max(200, fileTypes.length * 36 + 40) }}>
@@ -530,8 +536,8 @@ const AuditDashboard: React.FC = () => {
             )}
 
             {sources.length > 0 && (
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-100 bg-[#3a165d]">
+              <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-[#3a165d]">
                   <h3 className="font-semibold text-white text-sm">Sources d'upload</h3>
                 </div>
                 <div className="p-6 flex items-center justify-center">
@@ -569,16 +575,16 @@ const AuditDashboard: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Solidity severity donut */}
             {solSeverityTotal > 0 && (
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-100 bg-[#5d2e8e]">
+              <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-[#5d2e8e]">
                   <h3 className="font-semibold text-white text-sm">Sévérités Solidity</h3>
                 </div>
                 <div className="p-6 flex items-center justify-center">
                   <div className="relative w-56 h-56">
                     <Doughnut data={solDonutData} options={solDonutOptions} />
                     <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                      <span className="text-3xl font-bold text-gray-900">{solSeverityTotal}</span>
-                      <span className="text-xs text-gray-400">findings</span>
+                      <span className="text-3xl font-bold text-gray-900 dark:text-gray-100">{solSeverityTotal}</span>
+                      <span className="text-xs text-gray-400 dark:text-gray-500">findings</span>
                     </div>
                   </div>
                 </div>
@@ -590,7 +596,7 @@ const AuditDashboard: React.FC = () => {
                     { label: 'Low', color: SEVERITY_COLORS.low, value: solOverview.low },
                     { label: 'Info', color: SEVERITY_COLORS.informational, value: solOverview.informational },
                   ]).map((item) => (
-                    <div key={item.label} className="flex items-center gap-2 text-xs text-gray-600">
+                    <div key={item.label} className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
                       <span className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
                       {item.label}: <span className="font-semibold">{item.value}</span>
                     </div>
@@ -601,8 +607,8 @@ const AuditDashboard: React.FC = () => {
 
             {/* Solidity scans over time */}
             {solTimeline.length > 0 && (
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-100 bg-[#5d2e8e]">
+              <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-[#5d2e8e]">
                   <h3 className="font-semibold text-white text-sm">Scans Solidity par jour (30j)</h3>
                 </div>
                 <div className="p-6" style={{ height: 300 }}>
@@ -615,7 +621,7 @@ const AuditDashboard: React.FC = () => {
       )}
 
       {!hasTrivyData && !hasSolData && !isLoading && (
-        <div className="text-center py-16 text-gray-400 text-sm">
+        <div className="text-center py-16 text-gray-400 dark:text-gray-500 text-sm">
           Aucune donnée de scan disponible. Lancez une analyse pour voir les statistiques.
         </div>
       )}
