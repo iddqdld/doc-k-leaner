@@ -1,5 +1,16 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
+import { Doughnut } from 'react-chartjs-2';
 import { AuditStats, getAuditStats } from '../services/fileApi';
+
+ChartJS.register(ArcElement, Tooltip, Legend);
+
+const SEVERITY_COLORS = {
+  critical: '#dc2626',
+  high: '#f97316',
+  medium: '#f59e0b',
+  low: '#10b981',
+};
 
 const AuditDashboard: React.FC = () => {
   const [stats, setStats] = useState<AuditStats | null>(null);
@@ -30,31 +41,62 @@ const AuditDashboard: React.FC = () => {
     };
   }, [loadStats]);
 
-  const cards = useMemo(
-    () =>
-      stats
-        ? [
-            { label: 'Total Files', value: stats.total_files, color: 'bg-indigo-500', icon: 'FI', description:'Cet indicateur montre le nombre de fichier que vous avez insérer dans notre scanner' },
-            { label: 'Total Scans', value: stats.total_scans, color: 'bg-blue-500', icon: 'SC', description:'Cet indicateur montre le nombre de fichier que vous avez scanné (ce nombre devrait être égale à celui du nombre de fichier que vous avez rentré sinon ça veut dire que vous oublié de scanner au moins un fichier)' },
-            { label: 'Critical', value: stats.critical, color: 'bg-red-500', icon: 'CR', description: 'Cet indicateur vous donne le nombre de fichier en état critique' },
-            { label: 'High', value: stats.high, color: 'bg-orange-500', icon: 'HI', description:'Cet indicateur vous donne le nombre de fichier en état haut risque' },
-            { label: 'Medium', value: stats.medium, color: 'bg-amber-500', icon: 'ME', description:'Cet indicateur vous donne le nombre de fichier en état moyen risque' },
-            { label: 'Low', value: stats.low, color: 'bg-emerald-500', icon: 'LO', description:'Cet indicateur vous donne le nombre de fichier en état faible risque' },
-          ]
-        : [],
+  const severityTotal = useMemo(
+    () => (stats ? stats.critical + stats.high + stats.medium + stats.low : 0),
     [stats]
   );
 
+  const donutData = useMemo(() => ({
+    labels: ['Critical', 'High', 'Medium', 'Low'],
+    datasets: [
+      {
+        data: stats ? [stats.critical, stats.high, stats.medium, stats.low] : [],
+        backgroundColor: [SEVERITY_COLORS.critical, SEVERITY_COLORS.high, SEVERITY_COLORS.medium, SEVERITY_COLORS.low],
+        borderColor: '#ffffff',
+        borderWidth: 2,
+        hoverBorderWidth: 0,
+        hoverOffset: 6,
+      },
+    ],
+  }), [stats]);
+
+  const donutOptions = useMemo(() => ({
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: '68%',
+    plugins: {
+      legend: {
+        display: false,
+      },
+      tooltip: {
+        backgroundColor: '#3a165d',
+        titleFont: { size: 13, weight: 'bold' as const },
+        bodyFont: { size: 12 },
+        padding: 10,
+        cornerRadius: 6,
+        callbacks: {
+          label: (ctx: { parsed: number }) => {
+            const pct = severityTotal > 0 ? ((ctx.parsed / severityTotal) * 100).toFixed(1) : '0';
+            return ` ${ctx.parsed} findings (${pct}%)`;
+          },
+        },
+      },
+    },
+  }), [severityTotal]);
+
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="space-y-8 animate-in fade-in duration-500 w-full max-w-6xl">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-900">Audit Overview</h2>
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Dashboard</h2>
+          <p className="text-sm text-gray-500 mt-1">Vue d'ensemble de la sécurité</p>
+        </div>
         <button
-          className="bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors disabled:opacity-60"
+          className="bg-[#3a165d] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#5d2e8e] transition-colors disabled:opacity-60"
           onClick={loadStats}
           disabled={isLoading}
         >
-          {isLoading ? 'Loading...' : 'Refresh'}
+          {isLoading ? 'Chargement...' : 'Rafraîchir'}
         </button>
       </div>
 
@@ -64,27 +106,39 @@ const AuditDashboard: React.FC = () => {
         </div>
       )}
 
-      {isLoading && <div className="text-sm text-gray-500">Loading stats...</div>}
+      {isLoading && !stats && <div className="text-sm text-gray-500">Chargement des statistiques...</div>}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {cards.map((stat) => (
-          <div
-            key={stat.label}
-            className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex items-start justify-between"
-          >
-            <div>
-              <p className="text-sm font-medium text-gray-500 mb-1">{stat.label}</p>
-              <h3 className="text-2xl font-bold text-gray-900">{stat.value}</h3>
-              <div className="text-sm text-gray-500 mt-2">{stat.description}</div>
+      {stats && severityTotal > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100 bg-[#3a165d]">
+              <h3 className="font-semibold text-white text-sm">Répartition par sévérité</h3>
             </div>
-            <div
-              className={`w-10 h-10 ${stat.color} rounded-lg flex items-center justify-center text-white text-xs font-semibold tracking-wide`}
-            >
-              {stat.icon}
+            <div className="p-6 flex items-center justify-center">
+              <div className="relative w-56 h-56">
+                <Doughnut data={donutData} options={donutOptions} />
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  <span className="text-3xl font-bold text-gray-900">{severityTotal}</span>
+                  <span className="text-xs text-gray-400">findings</span>
+                </div>
+              </div>
+            </div>
+            <div className="px-6 pb-5 flex flex-wrap justify-center gap-4">
+              {[
+                { label: 'Critical', color: SEVERITY_COLORS.critical, value: stats.critical },
+                { label: 'High', color: SEVERITY_COLORS.high, value: stats.high },
+                { label: 'Medium', color: SEVERITY_COLORS.medium, value: stats.medium },
+                { label: 'Low', color: SEVERITY_COLORS.low, value: stats.low },
+              ].map((item) => (
+                <div key={item.label} className="flex items-center gap-2 text-xs text-gray-600">
+                  <span className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
+                  {item.label}: <span className="font-semibold">{item.value}</span>
+                </div>
+              ))}
             </div>
           </div>
-        ))}
-      </div>
+        </div>
+      )}
     </div>
   );
 };
