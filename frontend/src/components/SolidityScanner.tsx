@@ -166,7 +166,7 @@ const SolidityScanner: React.FC = () => {
   return (
     <div className="w-full space-y-8 animate-in fade-in duration-700">
       <div className="text-center mb-12">
-        <h1 className="text-4xl font-black text-[#5d2e8e] tracking-tight">Solidity Scanner</h1>
+        <h1 className="text-4xl font-black text-orange-500 tracking-tight">Solidity Scanner</h1>
         <p className="text-sm text-gray-500 mt-2">Analyse de smart contracts Solidity/EVM</p>
       </div>
 
