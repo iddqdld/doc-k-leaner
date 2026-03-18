@@ -20,6 +20,9 @@ from app.db.postgres import get_db
 from app.schemas.auth import (
     AdminOverview,
     AdminUserRow,
+    DockerContainersResponse,
+    DockerContainerRow,
+    DockerLogsResponse,
     GoogleAuthRequest,
     LoginRequest,
     RegisterRequest,
@@ -27,6 +30,7 @@ from app.schemas.auth import (
     TokenResponse,
     UserResponse,
 )
+from app.services.docker_admin_service import fetch_container_logs, list_stack_containers
 from app.services.auth_service import (
     create_access_token,
     create_user,
@@ -161,3 +165,24 @@ async def admin_delete_user(
     if not ok:
         raise HTTPException(status_code=404, detail="User not found")
     return {"message": "User deleted", "id": tid}
+
+
+@router.get("/admin/docker/containers", response_model=DockerContainersResponse)
+async def admin_docker_containers(_admin: dict = Depends(require_admin)):
+    rows, hint = list_stack_containers()
+    return DockerContainersResponse(
+        containers=[DockerContainerRow(**r) for r in rows],
+        hint=hint,
+    )
+
+
+@router.get("/admin/docker/logs", response_model=DockerLogsResponse)
+async def admin_docker_logs(
+    service: str,
+    tail: int = 300,
+    _admin: dict = Depends(require_admin),
+):
+    logs, err = fetch_container_logs(service, tail)
+    if err:
+        raise HTTPException(status_code=400, detail=err)
+    return DockerLogsResponse(logs=logs or "")

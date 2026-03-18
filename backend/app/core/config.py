@@ -9,6 +9,8 @@ class Settings(BaseSettings):
     storage_dir: str = "data/storage"
     scan_dir: str = "data/scans"
     docker_cli_path: str = "/usr/bin/docker"
+    # Compose project label (folder name when you `docker compose up` from docker/). Use "*" for all containers.
+    docker_compose_project: str = "docker"
     github_repo: str = "iddqdld/doc-k-leaner"
     github_branch: str = "dev"
     trivy_secret_config: str = "/etc/trivy/trivy-secret.yaml"

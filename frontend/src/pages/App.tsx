@@ -11,7 +11,7 @@ import Sandbox from '../components/Sandbox';
 const Scanner = lazy(() => import('../components/Scanner'));
 const Dashboard = lazy(() => import('../components/Dashboard'));
 const AuditDashboard = lazy(() => import('../components/AuditDashboard'));
-const Infrastructure = lazy(() => import('../components/Infrastructure'));
+const AdminDocker = lazy(() => import('../components/AdminDocker'));
 const Sandbox = lazy(() => import('../components/Sandbox'))
 const SolidityScanner = lazy(() => import('../components/SolidityScanner'))
 const ScanHistory = lazy(() => import('../components/ScanHistory'))
@@ -31,8 +31,8 @@ const App: React.FC = () => {
         return <Sandbox />;
       case 'ressources':
         return <Dashboard />;
-      case 'infrastructure':
-        return <Infrastructure />;
+      case 'docker':
+        return <AdminDocker />;
       case 'history':
         return <ScanHistory />;
       default:

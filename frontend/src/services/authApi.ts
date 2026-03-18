@@ -136,3 +136,28 @@ export async function adminDeleteUser(userId: string): Promise<void> {
     headers: authHeaders(),
   });
 }
+
+export interface DockerContainerRow {
+  service: string;
+  name: string;
+  container_id: string;
+  state: string;
+  status: string;
+  image: string;
+}
+
+export async function getAdminDockerContainers(): Promise<{
+  containers: DockerContainerRow[];
+  hint: string | null;
+}> {
+  return authRequest('/api/auth/admin/docker/containers', {
+    headers: authHeaders(),
+  });
+}
+
+export async function getAdminDockerLogs(service: string, tail = 300): Promise<{ logs: string }> {
+  const q = new URLSearchParams({ service, tail: String(tail) });
+  return authRequest(`/api/auth/admin/docker/logs?${q}`, {
+    headers: authHeaders(),
+  });
+}
