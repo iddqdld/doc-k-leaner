@@ -1,13 +1,13 @@
 
 import React from 'react';
 
-const Infrastructure: React.FC = () => {
-  const nodes = [
-    { id: 'node-01', status: 'Ready', cpu: '45%', ram: '62%', type: 'Master' },
-    { id: 'node-02', status: 'Ready', cpu: '88%', ram: '55%', type: 'Worker' },
-    { id: 'node-03', status: 'NotReady', cpu: '0%', ram: '0%', type: 'Worker' },
-  ];
+const nodes = [
+  { id: 'node-01', status: 'Ready', cpu: '45%', ram: '62%', type: 'Master' },
+  { id: 'node-02', status: 'Ready', cpu: '88%', ram: '55%', type: 'Worker' },
+  { id: 'node-03', status: 'NotReady', cpu: '0%', ram: '0%', type: 'Worker' },
+];
 
+const Infrastructure: React.FC = () => {
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex items-center justify-between">

@@ -38,3 +38,31 @@ added storage service and db service files in ./services
 they are additional files to connect postgre storage
 
 + psycopg[binary] in requirements so we can talk with our db.
+
+Solidity Guard (https://github.com/alt-research/SolidityGuard?tab=readme-ov-file#) very cool tech: 
+
+it is ran in it's own docker container. we are integrated:
+internal endpoints + client to call solidity gurad api.
+generating pdf's reports
+has 2 mods quick and normal
+accepts only .sol (solidity) type of files < 5mb (they are super light normally)
+tested via OpenAI EVM benchmark 100% passed
+
+full list of their features
+104 Vulnerability Patterns (ETH-001 to ETH-104) — from real audits, exploits, SWC Registry, OWASP 2025, and 2025-2026 research
+9-Tool Integration — Slither, Mythril, Echidna, Aderyn, Foundry v1.0, Medusa v1, Halmos, Certora, EVMBench
+3 Application Surfaces — CLI, Web (solidityguard.org), Desktop (Tauri v2)
+Docker Support — scan locally with zero setup, your code never leaves your machine
+Professional Reports — OpenZeppelin/Trail of Bits-style Markdown + PDF with severity scoring
+7-Phase Deep Audit — scan, verify, parallel agents, exploit PoC, dynamic verification, fuzz, report
+Multi-Agent Architecture — 9 specialized sub-agents for deep parallel analysis
+Dynamic Exploit Verification — Foundry fork-based PoC testing on forked mainnet
+Formal Verification — Halmos symbolic tests + Certora CVL rules
+Fuzz Test Generation — Foundry invariant tests + Echidna property tests from scan findings
+OWASP 2025 Aligned — covers all Smart Contract Top 10 2025 categories
+CTF-Validated — 100% detection on 85/85 challenges: DeFiVulnLabs (56/56) + Paradigm CTF (24/24) + R3CTF 2025 + HTB CA 2025 (5/5)
+EVMBench Validated — 120/120 (100%) ground-truth vulnerability coverage across 40 real-world audits
+
+we are integrated only lightweight model (Slither + pattern Recognition)
+
+was tested on some bulletproff contracts such as ERC20.sol and UniswapV3Pool.sol as well as https://www.damnvulnerabledefi.xyz/ they have challanges with vulnerbale smart-contracts 
