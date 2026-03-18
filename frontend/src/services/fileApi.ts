@@ -79,6 +79,29 @@ export interface AuditStats {
   low: number;
 }
 
+export interface DailyScans {
+  date: string;
+  count: number;
+}
+
+export interface DailySeverity {
+  date: string;
+  critical: number;
+  high: number;
+  medium: number;
+  low: number;
+}
+
+export interface FileTypeCount {
+  file_type: string;
+  count: number;
+}
+
+export interface SourceCount {
+  source: string;
+  count: number;
+}
+
 export interface SandboxValidationResponse {
   sanitized_text: string;
   input_length: number;
@@ -169,6 +192,22 @@ export async function scanImage(image: string): Promise<ImageScanResponse> {
 
 export async function getAuditStats(): Promise<AuditStats> {
   return requestJson<AuditStats>('/api/stats/overview');
+}
+
+export async function getScansOverTime(days = 30): Promise<DailyScans[]> {
+  return requestJson<DailyScans[]>(`/api/stats/scans-over-time?days=${days}`);
+}
+
+export async function getSeverityOverTime(days = 30): Promise<DailySeverity[]> {
+  return requestJson<DailySeverity[]>(`/api/stats/severity-over-time?days=${days}`);
+}
+
+export async function getFileTypeStats(): Promise<FileTypeCount[]> {
+  return requestJson<FileTypeCount[]>('/api/stats/by-file-type');
+}
+
+export async function getSourceStats(): Promise<SourceCount[]> {
+  return requestJson<SourceCount[]>('/api/stats/by-source');
 }
 
 export async function validateSandboxInput(
