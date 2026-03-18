@@ -28,7 +28,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab }) =>
               href="https://github.com/iddqdld/doc-k-leaner"
               target="_blank" 
               rel="noopener noreferrer"
-              className="hover:text-orange-400 transition-colors flex items-center gap-2"
+              className="hover:text-orange-500 transition-colors flex items-center gap-2"
               title="Voir sur GitHub"
             >
               <svg 
@@ -48,7 +48,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab }) =>
               onClick={() => setActiveTab(item.id)}
               className={`text-xs tracking-wide font-semibold whitespace-nowrap transition-colors ${
                 activeTab === item.id
-                  ? 'text-amber-300'
+                  ? 'text-orange-500'
                   : 'text-violet-100/80 hover:text-white'
               }`}
             >
