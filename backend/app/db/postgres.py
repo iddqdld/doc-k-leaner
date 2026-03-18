@@ -17,9 +17,24 @@ async def init_db() -> None:
     conn = await psycopg.AsyncConnection.connect(settings.postgres_url)
     try:
         async with conn.cursor() as cur:
-            await cur.execute( ## file uploads stored here
+            await cur.execute(
                 """
-                CREATE TABLE IF NOT EXISTS files (  
+                CREATE TABLE IF NOT EXISTS users (
+                    id          UUID PRIMARY KEY,
+                    email       TEXT NOT NULL UNIQUE,
+                    password_hash TEXT,
+                    name        TEXT NOT NULL,
+                    avatar_url  TEXT,
+                    role        TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin')),
+                    provider    TEXT NOT NULL DEFAULT 'local' CHECK (provider IN ('local', 'google')),
+                    google_id   TEXT UNIQUE,
+                    created_at  TIMESTAMPTZ NOT NULL
+                )
+                """
+            )
+            await cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS files (
                     id UUID PRIMARY KEY,
                     filename TEXT NOT NULL,
                     content_type TEXT NOT NULL,
@@ -31,7 +46,7 @@ async def init_db() -> None:
                 )
                 """
             )
-            await cur.execute(  ## scan results table 
+            await cur.execute(
                 """
                 CREATE TABLE IF NOT EXISTS scan_results (
                     id UUID PRIMARY KEY,
@@ -81,6 +96,16 @@ async def init_db() -> None:
                     created_at TIMESTAMPTZ NOT NULL
                 )
                 """
+            )
+            # Add owner_id FK to existing tables (idempotent)
+            await cur.execute(
+                "ALTER TABLE files ADD COLUMN IF NOT EXISTS owner_id UUID REFERENCES users(id) ON DELETE SET NULL"
+            )
+            await cur.execute(
+                "ALTER TABLE solidity_contracts ADD COLUMN IF NOT EXISTS owner_id UUID REFERENCES users(id) ON DELETE SET NULL"
+            )
+            await cur.execute(
+                "ALTER TABLE sandbox_usage ADD COLUMN IF NOT EXISTS owner_id UUID REFERENCES users(id) ON DELETE SET NULL"
             )
         await conn.commit()
     finally:

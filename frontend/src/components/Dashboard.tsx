@@ -1,27 +1,68 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import {
+  adminDeleteUser,
+  getAdminOverview,
+  getAdminUsers,
+  type AdminOverview as AdminOverviewType,
+  type AdminUserRow,
+} from '../services/authApi';
 import { AdminFileRecord, getAdminFiles } from '../services/fileApi';
 
 const Dashboard: React.FC = () => {
+  const { user } = useAuth();
+  const [overview, setOverview] = useState<AdminOverviewType | null>(null);
+  const [adminUsers, setAdminUsers] = useState<AdminUserRow[]>([]);
   const [files, setFiles] = useState<AdminFileRecord[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [usersError, setUsersError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const loadFiles = useCallback(async () => {
-    setIsLoading(true);
+  const loadAll = useCallback(async () => {
+    if (user?.role !== 'admin') return;
+    setLoading(true);
     setError(null);
+    setUsersError(null);
     try {
-      const data = await getAdminFiles(50);
-      setFiles(data);
+      const [ov, u, f] = await Promise.all([
+        getAdminOverview(),
+        getAdminUsers(),
+        getAdminFiles(50),
+      ]);
+      setOverview(ov);
+      setAdminUsers(u);
+      setFiles(f);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load files');
+      setError(err instanceof Error ? err.message : 'Échec du chargement');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
-  }, []);
+  }, [user?.role]);
 
   useEffect(() => {
-    void loadFiles();
-  }, [loadFiles]);
+    void loadAll();
+  }, [loadAll]);
+
+  const handleDeleteUser = useCallback(
+    async (row: AdminUserRow) => {
+      if (row.id === user?.id) return;
+      if (!window.confirm(`Supprimer l'utilisateur ${row.email} ? Ses fichiers resteront (anonymisés).`)) return;
+      setDeletingId(row.id);
+      setUsersError(null);
+      try {
+        await adminDeleteUser(row.id);
+        setAdminUsers((prev) => prev.filter((u) => u.id !== row.id));
+        const ov = await getAdminOverview();
+        setOverview(ov);
+      } catch (err) {
+        setUsersError(err instanceof Error ? err.message : 'Suppression impossible');
+      } finally {
+        setDeletingId(null);
+      }
+    },
+    [user?.id],
+  );
 
   const formatFileSize = useCallback((bytes: number): string => {
     if (bytes < 1024) return `${bytes} B`;
@@ -32,108 +73,194 @@ const Dashboard: React.FC = () => {
   const formatDate = useCallback((value: string): string => {
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return value;
-    return date.toLocaleString();
+    return date.toLocaleString('fr-FR');
   }, []);
 
   const formatScanSummary = useCallback((file: AdminFileRecord): string => {
     if (!file.scan_summary) return '—';
-    return `C:${file.scan_summary.critical} H:${file.scan_summary.high} M:${file.scan_summary.medium} L:${file.scan_summary.low} U:${file.scan_summary.unknown}`;
+    return `C:${file.scan_summary.critical} H:${file.scan_summary.high} M:${file.scan_summary.medium} L:${file.scan_summary.low}`;
   }, []);
 
+  if (user?.role !== 'admin') {
+    return (
+      <div className="max-w-lg mx-auto text-center py-16 px-4">
+        <h2 className="text-xl font-bold text-gray-800">Accès réservé aux administrateurs</h2>
+        <p className="text-gray-500 text-sm mt-2">Cette page n'est visible qu'avec un compte admin.</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 w-full">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Admin: Stored Files</h2>
-          <p className="text-gray-500 text-sm">Latest uploads from Postgres</p>
-        </div>
-        <button
-          className="bg-[#3a165d] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#5d2e8e] transition-colors disabled:opacity-60"
-          onClick={loadFiles}
-          disabled={isLoading}
-        >
-          {isLoading ? 'Loading...' : 'Refresh'}
-        </button>
+    <div className="space-y-10 animate-in fade-in duration-500 w-full max-w-6xl">
+      <div>
+        <h2 className="text-3xl font-black text-orange-500 tracking-tight">Administration</h2>
+        <p className="text-gray-500 text-sm mt-1">Métriques, utilisateurs et fichiers stockés</p>
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-          {error}
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">{error}</div>
+      )}
+
+      {/* Metrics */}
+      {overview && (
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div className="bg-[#3a165d] rounded-xl px-5 py-4 text-center">
+            <div className="text-2xl font-bold text-white">{overview.total_users}</div>
+            <div className="text-[10px] text-white/50 uppercase tracking-wide mt-1">Utilisateurs</div>
+          </div>
+          <div className="bg-white rounded-xl border border-gray-200 px-5 py-4 text-center shadow-sm">
+            <div className="text-2xl font-bold text-[#5d2e8e]">{overview.registrations_last_7_days}</div>
+            <div className="text-[10px] text-gray-400 uppercase tracking-wide mt-1">Inscrits 7 j.</div>
+          </div>
+          <div className="bg-white rounded-xl border border-gray-200 px-5 py-4 text-center shadow-sm">
+            <div className="text-2xl font-bold text-[#5d2e8e]">{overview.registrations_last_30_days}</div>
+            <div className="text-[10px] text-gray-400 uppercase tracking-wide mt-1">Inscrits 30 j.</div>
+          </div>
+          <div className="bg-white rounded-xl border border-gray-200 px-5 py-4 text-center shadow-sm">
+            <div className="text-2xl font-bold text-orange-500">{overview.avg_scans_per_user}</div>
+            <div className="text-[10px] text-gray-400 uppercase tracking-wide mt-1">Moy. scans / user actif</div>
+          </div>
+          <div className="bg-white rounded-xl border border-gray-200 px-5 py-4 text-center shadow-sm">
+            <div className="text-2xl font-bold text-gray-800">{overview.users_with_owned_scans}</div>
+            <div className="text-[10px] text-gray-400 uppercase tracking-wide mt-1">Users avec scans</div>
+          </div>
         </div>
       )}
 
+      {/* Users */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-          <h3 className="font-semibold text-gray-900">Recent Uploads</h3>
-          <span className="text-xs text-gray-400">{files.length} records</span>
+        <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+          <h3 className="font-semibold text-gray-900">Gestion utilisateurs</h3>
+          <button
+            type="button"
+            className="text-xs text-orange-500 font-semibold hover:underline"
+            onClick={() => void loadAll()}
+            disabled={loading}
+          >
+            Rafraîchir
+          </button>
         </div>
+        {usersError && (
+          <div className="mx-5 mt-3 text-sm text-red-600">{usersError}</div>
+        )}
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
+          <table className="w-full text-left text-sm">
             <thead className="text-xs uppercase text-gray-400 font-semibold border-b border-gray-100">
               <tr>
-                <th className="px-6 py-3">Filename</th>
-                <th className="px-6 py-3">Source</th>
-                <th className="px-6 py-3">Size</th>
-                <th className="px-6 py-3">Content Type</th>
-                <th className="px-6 py-3">Scan Status</th>
-                <th className="px-6 py-3">Scan Summary</th>
-                <th className="px-6 py-3">Report</th>
-                <th className="px-6 py-3">Created At</th>
+                <th className="px-5 py-3">Email</th>
+                <th className="px-5 py-3">Nom</th>
+                <th className="px-5 py-3">Rôle</th>
+                <th className="px-5 py-3">Provider</th>
+                <th className="px-5 py-3">Scans</th>
+                <th className="px-5 py-3">Inscription</th>
+                <th className="px-5 py-3 w-24">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {files.map((file) => (
-                <tr key={file.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4">
-                    <div className="font-medium text-gray-800">{file.filename}</div>
-                    {file.original_url && (
-                      <div className="text-xs text-gray-400 truncate max-w-[420px]">
-                        {file.original_url}
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="px-2 py-1 rounded bg-gray-100 text-gray-600 text-xs font-medium">
-                      {file.source}
+              {adminUsers.map((u) => (
+                <tr key={u.id} className="hover:bg-gray-50/50">
+                  <td className="px-5 py-3 text-gray-800">{u.email}</td>
+                  <td className="px-5 py-3">{u.name}</td>
+                  <td className="px-5 py-3">
+                    <span
+                      className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                        u.role === 'admin' ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-600'
+                      }`}
+                    >
+                      {u.role}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-700">{formatFileSize(file.size)}</td>
-                  <td className="px-6 py-4 text-sm text-gray-700">{file.content_type}</td>
-                  <td className="px-6 py-4 text-sm text-gray-700">{file.scan_status || '—'}</td>
-                  <td className="px-6 py-4 text-sm text-gray-700">{formatScanSummary(file)}</td>
-                  <td className="px-6 py-4 text-sm text-gray-700">
-                    {file.scan_report_url ? (
-                      <a
-                        href={file.scan_report_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-orange-500 hover:underline"
-                      >
-                        JSON
-                      </a>
+                  <td className="px-5 py-3 text-gray-500">{u.provider}</td>
+                  <td className="px-5 py-3">{u.owned_items}</td>
+                  <td className="px-5 py-3 text-gray-500 text-xs">{formatDate(u.created_at)}</td>
+                  <td className="px-5 py-3">
+                    {u.id === user?.id ? (
+                      <span className="text-xs text-gray-400">—</span>
                     ) : (
-                      '—'
+                      <button
+                        type="button"
+                        disabled={deletingId === u.id}
+                        onClick={() => void handleDeleteUser(u)}
+                        className="text-xs text-red-600 hover:text-red-800 font-medium disabled:opacity-50"
+                      >
+                        {deletingId === u.id ? '...' : 'Supprimer'}
+                      </button>
                     )}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-500">{formatDate(file.created_at)}</td>
                 </tr>
               ))}
-              {!isLoading && files.length === 0 && (
+              {!loading && adminUsers.length === 0 && (
                 <tr>
-                  <td className="px-6 py-6 text-sm text-gray-500" colSpan={8}>
-                    No files stored yet.
-                  </td>
-                </tr>
-              )}
-              {isLoading && (
-                <tr>
-                  <td className="px-6 py-6 text-sm text-gray-500" colSpan={8}>
-                    Loading files...
+                  <td colSpan={7} className="px-5 py-8 text-center text-gray-400">
+                    Aucun utilisateur
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      {/* Files */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-bold text-gray-900">Fichiers stockés</h3>
+            <p className="text-gray-500 text-xs">Derniers uploads Postgres</p>
+          </div>
+          <button
+            className="bg-[#3a165d] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#5d2e8e] transition-colors disabled:opacity-60"
+            onClick={() => void loadAll()}
+            disabled={loading}
+          >
+            {loading ? 'Chargement...' : 'Rafraîchir'}
+          </button>
+        </div>
+
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead className="text-xs uppercase text-gray-400 font-semibold border-b border-gray-100">
+                <tr>
+                  <th className="px-6 py-3">Fichier</th>
+                  <th className="px-6 py-3">Source</th>
+                  <th className="px-6 py-3">Taille</th>
+                  <th className="px-6 py-3">Scan</th>
+                  <th className="px-6 py-3">Rapport</th>
+                  <th className="px-6 py-3">Créé</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {files.map((file) => (
+                  <tr key={file.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="font-medium text-gray-800">{file.filename}</div>
+                    </td>
+                    <td className="px-6 py-4 text-xs">{file.source}</td>
+                    <td className="px-6 py-4 text-sm">{formatFileSize(file.size)}</td>
+                    <td className="px-6 py-4 text-sm">{formatScanSummary(file)}</td>
+                    <td className="px-6 py-4 text-sm">
+                      {file.scan_report_url ? (
+                        <a href={file.scan_report_url} target="_blank" rel="noreferrer" className="text-orange-500 hover:underline">
+                          JSON
+                        </a>
+                      ) : (
+                        '—'
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-500">{formatDate(file.created_at)}</td>
+                  </tr>
+                ))}
+                {!loading && files.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-6 text-sm text-gray-500 text-center">
+                      Aucun fichier
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
