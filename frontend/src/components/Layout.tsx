@@ -8,7 +8,7 @@ interface LayoutProps {
 }
 
 const navItems = [
-  { id: 'sandbox', label: 'Audit' },
+  { id: 'sandbox', label: 'Dashboard' },
   { id: 'scanner', label: 'Analyse Fichiers' },
   { id: 'solidity', label: 'Solidity Scanner' },
   { id: 'collections', label: 'Sandbox' },

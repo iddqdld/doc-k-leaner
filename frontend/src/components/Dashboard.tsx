@@ -48,7 +48,7 @@ const Dashboard: React.FC = () => {
           <p className="text-gray-500 text-sm">Latest uploads from Postgres</p>
         </div>
         <button
-          className="bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors disabled:opacity-60"
+          className="bg-[#3a165d] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#5d2e8e] transition-colors disabled:opacity-60"
           onClick={loadFiles}
           disabled={isLoading}
         >
@@ -107,7 +107,7 @@ const Dashboard: React.FC = () => {
                         href={file.scan_report_url}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-indigo-600 hover:underline"
+                        className="text-orange-500 hover:underline"
                       >
                         JSON
                       </a>
