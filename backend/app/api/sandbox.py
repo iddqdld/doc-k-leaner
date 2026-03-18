@@ -15,10 +15,12 @@ from typing import Dict, List
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.core.config import settings
+from app.db.postgres import get_db
 from app.schemas.sandbox import (
     SandboxValidationRequest,
     SandboxValidationResponse,
 )
+from app.services.db_service import insert_sandbox_usage
 from app.services.sandbox_validator import (
     SandboxValidationError,
     SandboxValidationTimeout,
@@ -83,6 +85,7 @@ async def validate_sandbox_input(
     request: Request,
     payload: SandboxValidationRequest,
     _rate_limited: None = Depends(enforce_rate_limit),
+    db=Depends(get_db),
 ) -> SandboxValidationResponse:
     """Validate and sanitize user-provided text for the sandbox feature."""
     raw_text = payload.input_text
@@ -153,6 +156,11 @@ async def validate_sandbox_input(
         )
 
     escaped_output = escape_output_for_html(rewritten)
+
+    try:
+        await insert_sandbox_usage(db, raw_text)
+    except Exception:
+        logger.warning("Failed to log sandbox usage", exc_info=True)
 
     logger.info(
         {
