@@ -307,7 +307,7 @@ const Scanner: React.FC = () => {
   return (
     <div className="w-full space-y-8 animate-in fade-in duration-700">
       <div className="text-center mb-12">
-        <h1 className="text-4xl font-black text-[#5d2e8e] tracking-tight">Doc(k)leaner</h1>
+        <h1 className="text-4xl font-black text-orange-500 tracking-tight">Doc(k)leaner</h1>
       </div>
 
       <div className="flex flex-col lg:flex-row items-start justify-center gap-8 max-w-7xl mx-auto">
