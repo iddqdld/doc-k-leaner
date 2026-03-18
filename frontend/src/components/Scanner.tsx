@@ -307,7 +307,7 @@ const Scanner: React.FC = () => {
   return (
     <div className="w-full space-y-8 animate-in fade-in duration-700">
       <div className="text-center mb-12">
-        <h1 className="text-4xl font-black text-[#5d2e8e] tracking-tight">Doc(k)leaner</h1>
+        <h1 className="text-4xl font-black text-orange-500 tracking-tight">Doc(k)leaner</h1>
       </div>
 
       <div className="flex flex-col lg:flex-row items-start justify-center gap-8 max-w-7xl mx-auto">
@@ -331,7 +331,7 @@ const Scanner: React.FC = () => {
             </button>
           </div>
 
-          <div className="bg-[#5d2e8e] rounded-md shadow-xl overflow-hidden">
+          <div className="bg-[#3a165d] rounded-md shadow-xl overflow-hidden">
             <div className="p-8 space-y-6 flex flex-col items-center text-center">
               <p className="text-indigo-200 text-xs max-w-md leading-relaxed">
                 Il s'agit d'un service gratuit d'analyse des logiciels malveillants pour la communauté qui détecte et analyse les menaces inconnues.
@@ -482,7 +482,7 @@ const Scanner: React.FC = () => {
                 <button
                   onClick={() => void handleUrlSubmit()}
                   disabled={isUploading}
-                  className="bg-[#ff9d24] text-white px-6 font-bold text-xs rounded-r-sm hover:bg-[#e68a1f] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-orange-500 text-white px-6 font-bold text-xs rounded-r-sm hover:bg-[#e68a1f] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isUploading ? 'Loading...' : 'Analyser'}
                 </button>
@@ -502,7 +502,7 @@ const Scanner: React.FC = () => {
                 <button
                   onClick={() => void handleImageScan()}
                   disabled={isUploading}
-                  className="bg-[#ff9d24] text-white px-6 font-bold text-xs rounded-r-sm hover:bg-[#e68a1f] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-orange-500 text-white px-6 font-bold text-xs rounded-r-sm hover:bg-[#e68a1f] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isUploading ? 'Loading...' : 'Scan Image'}
                 </button>
@@ -543,7 +543,7 @@ const Scanner: React.FC = () => {
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {scanRows.map((item, index) => (
-                      <tr key={`${item.id}-${index}`} className="hover:bg-[#5d2e8e]/5 transition-colors">
+                      <tr key={`${item.id}-${index}`} className="hover:bg-[#3a165d]/5 transition-colors">
                         <td className="px-5 py-3 text-gray-700">{item.kind}</td>
                         <td className={`px-5 py-3 font-semibold ${getSeverityClass(item.severity)}`}>
                           {item.severity || 'UNKNOWN'}
@@ -579,7 +579,7 @@ const Scanner: React.FC = () => {
             ))}
 
             <div className="pt-2 text-center">
-              <button className="text-[#ff9d24] text-xs font-bold hover:underline">Voir plus</button>
+              <button className="text-orange-500 text-xs font-bold hover:underline">Voir plus</button>
             </div>
           </div>
         </div>
