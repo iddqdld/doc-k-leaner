@@ -316,7 +316,7 @@ const Scanner: React.FC = () => {
             <button
               onClick={() => setActiveSubTab('file')}
               className={`flex items-center gap-2 text-xs font-bold transition-colors ${
-                activeSubTab === 'file' ? 'text-gray-800' : 'text-gray-400'
+                activeSubTab === 'file' ? 'text-gray-800 dark:text-gray-200' : 'text-gray-400 dark:text-gray-500'
               }`}
             >
               <span className="text-sm">FL</span> File/URL
@@ -324,14 +324,14 @@ const Scanner: React.FC = () => {
             <button
               onClick={() => setActiveSubTab('search')}
               className={`flex items-center gap-2 text-xs font-bold transition-colors ${
-                activeSubTab === 'search' ? 'text-orange-500' : 'text-gray-400'
+                activeSubTab === 'search' ? 'text-orange-500' : 'text-gray-400 dark:text-gray-500'
               }`}
             >
               <span className="text-sm text-orange-500">RP</span> Recherche de Rapports
             </button>
           </div>
 
-          <div className="bg-[#3a165d] rounded-md shadow-xl overflow-hidden">
+          <div className="bg-[#3a165d] rounded-md shadow-xl overflow-hidden dark:ring-1 dark:ring-white/5">
             <div className="p-8 space-y-6 flex flex-col items-center text-center">
               <p className="text-indigo-200 text-xs max-w-md leading-relaxed">
                 Il s'agit d'un service gratuit d'analyse des logiciels malveillants pour la communauté qui détecte et analyse les menaces inconnues.
@@ -475,7 +475,7 @@ const Scanner: React.FC = () => {
                     onChange={(e) => setUrl(e.target.value)}
                     onKeyDown={handleUrlKeyDown}
                     placeholder="https://raw.githubusercontent.com/user/repo/main/docker-compose.yml"
-                    className="w-full h-11 px-4 py-2 text-sm bg-white rounded-l-sm outline-none text-gray-800 placeholder:text-gray-400 disabled:opacity-50"
+                    className="w-full h-11 px-4 py-2 text-sm bg-white dark:bg-gray-800 rounded-l-sm outline-none text-gray-800 dark:text-gray-200 placeholder:text-gray-400 dark:placeholder:text-gray-500 disabled:opacity-50"
                     disabled={isUploading}
                   />
                 </div>
@@ -495,7 +495,7 @@ const Scanner: React.FC = () => {
                     value={imageRef}
                     onChange={(e) => setImageRef(e.target.value)}
                     placeholder="nginx:latest or ghcr.io/org/app:tag"
-                    className="w-full h-11 px-4 py-2 text-sm bg-white rounded-l-sm outline-none text-gray-800 placeholder:text-gray-400 disabled:opacity-50"
+                    className="w-full h-11 px-4 py-2 text-sm bg-white dark:bg-gray-800 rounded-l-sm outline-none text-gray-800 dark:text-gray-200 placeholder:text-gray-400 dark:placeholder:text-gray-500 disabled:opacity-50"
                     disabled={isUploading}
                   />
                 </div>
@@ -518,20 +518,20 @@ const Scanner: React.FC = () => {
           </div>
 
           {scanReportError && (
-            <div className="mt-6 w-full bg-red-500/10 border border-red-400/40 rounded px-4 py-3 text-sm text-red-700">
+            <div className="mt-6 w-full bg-red-500/10 dark:bg-red-900/30 border border-red-400/40 rounded px-4 py-3 text-sm text-red-700 dark:text-red-300">
               {scanReportError}
             </div>
           )}
 
           {scanRows.length > 0 && (
-            <div className="mt-6 w-full rounded-xl border border-[#5d2e8e]/20 bg-[#5d2e8e]/5 shadow-sm overflow-hidden">
+            <div className="mt-6 w-full rounded-xl border border-[#5d2e8e]/20 dark:border-[#5d2e8e]/30 bg-[#5d2e8e]/5 dark:bg-[#5d2e8e]/10 shadow-sm overflow-hidden">
               <div className="p-5 border-b border-[#5d2e8e]/20 flex items-center justify-between bg-[#5d2e8e] text-white">
                 <h3 className="font-semibold">Scan Results</h3>
                 <span className="text-xs text-white/80">{scanRows.length} findings</span>
               </div>
-              <div className="overflow-x-auto bg-white">
+              <div className="overflow-x-auto bg-white dark:bg-gray-900">
                 <table className="w-full text-left text-sm">
-                  <thead className="text-xs uppercase text-[#5d2e8e] font-semibold border-b border-gray-100">
+                  <thead className="text-xs uppercase text-[#5d2e8e] dark:text-violet-300 font-semibold border-b border-gray-100 dark:border-gray-700">
                     <tr>
                       <th className="px-5 py-3">Type</th>
                       <th className="px-5 py-3">Severity</th>
@@ -541,17 +541,17 @@ const Scanner: React.FC = () => {
                       <th className="px-5 py-3">Location</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                     {scanRows.map((item, index) => (
-                      <tr key={`${item.id}-${index}`} className="hover:bg-[#3a165d]/5 transition-colors">
-                        <td className="px-5 py-3 text-gray-700">{item.kind}</td>
+                      <tr key={`${item.id}-${index}`} className="hover:bg-[#3a165d]/5 dark:hover:bg-[#3a165d]/20 transition-colors">
+                        <td className="px-5 py-3 text-gray-700 dark:text-gray-300">{item.kind}</td>
                         <td className={`px-5 py-3 font-semibold ${getSeverityClass(item.severity)}`}>
                           {item.severity || 'UNKNOWN'}
                         </td>
-                        <td className="px-5 py-3 text-gray-700">{item.id}</td>
-                        <td className="px-5 py-3 text-gray-700">{item.title}</td>
-                        <td className="px-5 py-3 text-gray-700">{item.status}</td>
-                        <td className="px-5 py-3 text-gray-500">{item.location}</td>
+                        <td className="px-5 py-3 text-gray-700 dark:text-gray-300">{item.id}</td>
+                        <td className="px-5 py-3 text-gray-700 dark:text-gray-300">{item.title}</td>
+                        <td className="px-5 py-3 text-gray-700 dark:text-gray-300">{item.status}</td>
+                        <td className="px-5 py-3 text-gray-500 dark:text-gray-400">{item.location}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -561,18 +561,18 @@ const Scanner: React.FC = () => {
           )}
         </div>
 
-        <div className="w-full lg:w-72 bg-white border border-gray-100 shadow-sm rounded-sm p-6 space-y-6">
-          <h3 className="text-gray-600 font-medium border-b border-gray-50 pb-3">Versions et Mises a Jour</h3>
+        <div className="w-full lg:w-72 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 shadow-sm rounded-sm p-6 space-y-6">
+          <h3 className="text-gray-600 dark:text-gray-300 font-medium border-b border-gray-50 dark:border-gray-700 pb-3">Versions et Mises a Jour</h3>
 
           <div className="space-y-4">
             {commitError && <div className="text-xs text-red-500">{commitError}</div>}
 
-            {!commitError && commits.length === 0 && <div className="text-xs text-gray-500">No updates yet.</div>}
+            {!commitError && commits.length === 0 && <div className="text-xs text-gray-500 dark:text-gray-400">No updates yet.</div>}
 
             {commits.map((commit) => (
               <div key={commit.sha} className="space-y-1">
-                <p className="text-xs text-gray-700 leading-relaxed">{commit.message}</p>
-                <p className="text-[10px] text-gray-400">
+                <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">{commit.message}</p>
+                <p className="text-[10px] text-gray-400 dark:text-gray-500">
                   {formatCommitDate(commit.date)} · {commit.short_sha}
                 </p>
               </div>

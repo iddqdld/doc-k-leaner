@@ -1,6 +1,7 @@
 
 import React, { Suspense, lazy, useMemo, useState } from 'react';
 import { AuthProvider } from '../contexts/AuthContext';
+import { ThemeProvider } from '../contexts/ThemeContext';
 import Layout from '../components/Layout';
 /* import Scanner from '../components/Scanner';
 import Dashboard from '../components/Dashboard';
@@ -42,13 +43,15 @@ const App: React.FC = () => {
   }, [activeTab]);
 
   return (
-    <AuthProvider>
-      <Layout activeTab={activeTab} setActiveTab={setActiveTab}>
-        <Suspense fallback={<div className="w-full text-center text-sm text-gray-500 py-10">Chargement...</div>}>
-          {content}
-        </Suspense>
-      </Layout>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <Layout activeTab={activeTab} setActiveTab={setActiveTab}>
+          <Suspense fallback={<div className="w-full text-center text-sm text-gray-500 dark:text-gray-400 py-10">Chargement...</div>}>
+            {content}
+          </Suspense>
+        </Layout>
+      </AuthProvider>
+    </ThemeProvider>
   );
 };
 
