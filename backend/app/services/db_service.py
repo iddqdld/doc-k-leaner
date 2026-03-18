@@ -330,6 +330,34 @@ async def get_global_overview(conn) -> GlobalOverview:
     )
 
 
+async def get_user_scan_history(conn, user_id: str) -> list[dict]:
+    """Return files + solidity contracts owned by a user, newest first."""
+    async with conn.cursor() as cur:
+        await cur.execute(
+            """
+            SELECT id, filename, size, 'trivy' AS scan_type, created_at
+            FROM files WHERE owner_id = %s
+            UNION ALL
+            SELECT id, filename, size, 'solidity' AS scan_type, created_at
+            FROM solidity_contracts WHERE owner_id = %s
+            ORDER BY created_at DESC
+            LIMIT 200
+            """,
+            (user_id, user_id),
+        )
+        rows = await cur.fetchall()
+    return [
+        {
+            "id": str(r[0]),
+            "filename": r[1],
+            "size": r[2],
+            "scan_type": r[3],
+            "created_at": r[4].isoformat() if r[4] else "",
+        }
+        for r in rows
+    ]
+
+
 async def get_file_storage_path(conn, file_id: str) -> str | None:
     async with conn.cursor() as cur:
         await cur.execute(

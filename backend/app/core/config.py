@@ -56,6 +56,12 @@ class Settings(BaseSettings):
         "application/octet-stream",  # Fallback for unknown text files
     }
 
+    # Auth
+    jwt_secret: str = "change-me-in-production"
+    jwt_expiry_hours: int = 24
+    google_client_id: str = ""
+    google_client_secret: str = ""
+
     # SolidityGuard microservice
     solidityguard_url: str = "http://solidityguard:8000"
     solidityguard_jwt_secret: str = "dockcleaner-local-secret"
