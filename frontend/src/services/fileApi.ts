@@ -1,4 +1,5 @@
-// API base URL
+import { authHeaders } from './authApi';
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 export interface FileUploadResponse {
@@ -79,6 +80,52 @@ export interface AuditStats {
   low: number;
 }
 
+export interface DailyScans {
+  date: string;
+  count: number;
+}
+
+export interface DailySeverity {
+  date: string;
+  critical: number;
+  high: number;
+  medium: number;
+  low: number;
+}
+
+export interface FileTypeCount {
+  file_type: string;
+  count: number;
+}
+
+export interface SourceCount {
+  source: string;
+  count: number;
+}
+
+export interface SolidityOverview {
+  total_contracts: number;
+  total_scans: number;
+  completed_scans: number;
+  avg_score: number | null;
+  critical: number;
+  high: number;
+  medium: number;
+  low: number;
+  informational: number;
+}
+
+export interface SolidityDailyScans {
+  date: string;
+  count: number;
+}
+
+export interface GlobalOverview {
+  total_files: number;
+  total_size_bytes: number;
+  sandbox_lines: number;
+}
+
 export interface SandboxValidationResponse {
   sanitized_text: string;
   input_length: number;
@@ -101,7 +148,8 @@ async function parseApiError(response: Response): Promise<string> {
 }
 
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, init);
+  const headers = { ...authHeaders(), ...(init?.headers as Record<string, string>) };
+  const response = await fetch(`${API_BASE_URL}${path}`, { ...init, headers });
 
   if (!response.ok) {
     throw new Error(await parseApiError(response));
@@ -167,8 +215,36 @@ export async function scanImage(image: string): Promise<ImageScanResponse> {
   });
 }
 
+export async function getGlobalOverview(): Promise<GlobalOverview> {
+  return requestJson<GlobalOverview>('/api/stats/global');
+}
+
 export async function getAuditStats(): Promise<AuditStats> {
   return requestJson<AuditStats>('/api/stats/overview');
+}
+
+export async function getScansOverTime(days = 30, offset = 0): Promise<DailyScans[]> {
+  return requestJson<DailyScans[]>(`/api/stats/scans-over-time?days=${days}&offset=${offset}`);
+}
+
+export async function getSeverityOverTime(days = 30, offset = 0): Promise<DailySeverity[]> {
+  return requestJson<DailySeverity[]>(`/api/stats/severity-over-time?days=${days}&offset=${offset}`);
+}
+
+export async function getFileTypeStats(): Promise<FileTypeCount[]> {
+  return requestJson<FileTypeCount[]>('/api/stats/by-file-type');
+}
+
+export async function getSourceStats(): Promise<SourceCount[]> {
+  return requestJson<SourceCount[]>('/api/stats/by-source');
+}
+
+export async function getSolidityOverview(): Promise<SolidityOverview> {
+  return requestJson<SolidityOverview>('/api/stats/solidity/overview');
+}
+
+export async function getSolidityScansOverTime(days = 30): Promise<SolidityDailyScans[]> {
+  return requestJson<SolidityDailyScans[]>(`/api/stats/solidity/scans-over-time?days=${days}`);
 }
 
 export async function validateSandboxInput(
@@ -178,6 +254,7 @@ export async function validateSandboxInput(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      ...authHeaders(),
     },
     body: JSON.stringify({ input_text: inputText }),
   });

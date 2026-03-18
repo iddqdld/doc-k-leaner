@@ -78,7 +78,7 @@ const Sandbox: React.FC = () => {
             }
           }}
           rows={8}
-          className="w-full border border-gray-300 rounded-md p-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+          className="w-full border border-gray-300 rounded-md p-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#5d2e8e] focus:border-[#5d2e8e]"
           placeholder="Collez ici le texte ou le code à valider..."
         />
         <div className="flex justify-between text-xs text-gray-500">
@@ -95,8 +95,8 @@ const Sandbox: React.FC = () => {
           onClick={handleValidate}
           disabled={loading}
           className={`inline-flex items-center px-4 py-2 rounded-md text-sm font-medium text-white ${
-            loading ? 'bg-indigo-300 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'
-          } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
+            loading ? 'bg-[#5d2e8e]/50 cursor-not-allowed' : 'bg-[#3a165d] hover:bg-[#5d2e8e]'
+          } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#5d2e8e]`}
         >
           {loading ? 'Validation en cours...' : 'Valider la saisie'}
         </button>

@@ -9,6 +9,8 @@ class Settings(BaseSettings):
     storage_dir: str = "data/storage"
     scan_dir: str = "data/scans"
     docker_cli_path: str = "/usr/bin/docker"
+    # Compose project label (folder name when you `docker compose up` from docker/). Use "*" for all containers.
+    docker_compose_project: str = "docker"
     github_repo: str = "iddqdld/doc-k-leaner"
     github_branch: str = "dev"
     trivy_secret_config: str = "/etc/trivy/trivy-secret.yaml"
@@ -55,6 +57,12 @@ class Settings(BaseSettings):
         "application/x-sh",
         "application/octet-stream",  # Fallback for unknown text files
     }
+
+    # Auth
+    jwt_secret: str = "change-me-in-production"
+    jwt_expiry_hours: int = 24
+    google_client_id: str = ""
+    google_client_secret: str = ""
 
     # SolidityGuard microservice
     solidityguard_url: str = "http://solidityguard:8000"
