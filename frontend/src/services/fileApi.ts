@@ -1,4 +1,5 @@
-// API base URL
+import { authHeaders } from './authApi';
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 export interface FileUploadResponse {
@@ -147,7 +148,8 @@ async function parseApiError(response: Response): Promise<string> {
 }
 
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, init);
+  const headers = { ...authHeaders(), ...(init?.headers as Record<string, string>) };
+  const response = await fetch(`${API_BASE_URL}${path}`, { ...init, headers });
 
   if (!response.ok) {
     throw new Error(await parseApiError(response));
@@ -252,6 +254,7 @@ export async function validateSandboxInput(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      ...authHeaders(),
     },
     body: JSON.stringify({ input_text: inputText }),
   });
