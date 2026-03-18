@@ -43,6 +43,7 @@ export interface ScanHistoryItem {
   size: number;
   scan_type: string;
   created_at: string;
+  report_id: string | null;  // file_id for trivy, scan_id for solidity
 }
 
 // api calls
