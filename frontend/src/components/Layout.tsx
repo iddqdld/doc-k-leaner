@@ -120,7 +120,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab }) =>
                 <div className="text-[10px] text-violet-200/50 truncate">{user.email}</div>
               </div>
               <button
-                onClick={logout}
+                onClick={() => { logout(); setActiveTab('scanner'); }}
                 className="text-violet-200/40 hover:text-white transition-colors shrink-0"
                 title="Se déconnecter"
               >

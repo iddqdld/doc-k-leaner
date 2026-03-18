@@ -2,8 +2,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000
 
 const TOKEN_KEY = 'dockcleaner_token';
 
-// ── Token helpers ──────────────────────────────────────────────────────
-
+// token helpers 
 export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
 }
@@ -21,7 +20,7 @@ export function authHeaders(): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-// ── Types ──────────────────────────────────────────────────────────────
+// types
 
 export interface UserResponse {
   id: string;
@@ -46,7 +45,7 @@ export interface ScanHistoryItem {
   created_at: string;
 }
 
-// ── API calls ──────────────────────────────────────────────────────────
+// api calls
 
 async function authRequest<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, init);
