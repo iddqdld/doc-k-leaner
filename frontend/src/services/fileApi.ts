@@ -191,6 +191,11 @@ export async function getFileMetadata(fileId: string): Promise<FileUploadRespons
   return requestJson<FileUploadResponse>(`/api/files/${fileId}`);
 }
 
+/** Raw Trivy JSON report for a file scan. */
+export async function getFileScanReport(fileId: string): Promise<Record<string, unknown>> {
+  return requestJson<Record<string, unknown>>(`/api/files/${fileId}/scan`);
+}
+
 export async function deleteFile(fileId: string): Promise<void> {
   await requestJson(`/api/files/${fileId}`, {
     method: 'DELETE',

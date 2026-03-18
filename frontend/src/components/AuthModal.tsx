@@ -85,7 +85,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ open, onClose }) => {
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
+      <div className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
         {/* Header */}
         <div className="bg-[#3a165d] px-6 py-5">
           <h2 className="text-xl font-black text-orange-500 tracking-tight">
@@ -100,46 +100,46 @@ const AuthModal: React.FC<AuthModalProps> = ({ open, onClose }) => {
 
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg px-3 py-2">
+            <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-xs rounded-lg px-3 py-2">
               {error}
             </div>
           )}
 
           {mode === 'register' && (
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Nom</label>
+              <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Nom</label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
-                className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#5d2e8e]/40 focus:border-[#5d2e8e]"
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#5d2e8e]/40 focus:border-[#5d2e8e]"
                 placeholder="Votre nom"
               />
             </div>
           )}
 
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Email</label>
+            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Email</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#5d2e8e]/40 focus:border-[#5d2e8e]"
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#5d2e8e]/40 focus:border-[#5d2e8e]"
               placeholder="you@example.com"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Mot de passe</label>
+            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Mot de passe</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={6}
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#5d2e8e]/40 focus:border-[#5d2e8e]"
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#5d2e8e]/40 focus:border-[#5d2e8e]"
               placeholder="Min. 6 caractères"
             />
           </div>
@@ -155,15 +155,15 @@ const AuthModal: React.FC<AuthModalProps> = ({ open, onClose }) => {
           {GOOGLE_CLIENT_ID && (
             <>
               <div className="flex items-center gap-3">
-                <div className="flex-1 h-px bg-gray-200" />
-                <span className="text-[10px] text-gray-400 uppercase">ou</span>
-                <div className="flex-1 h-px bg-gray-200" />
+                <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
+                <span className="text-[10px] text-gray-400 dark:text-gray-500 uppercase">ou</span>
+                <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
               </div>
               <div ref={googleBtnRef} className="flex justify-center" />
             </>
           )}
 
-          <p className="text-center text-xs text-gray-400">
+          <p className="text-center text-xs text-gray-400 dark:text-gray-500">
             {mode === 'login' ? (
               <>
                 Pas encore de compte ?{' '}

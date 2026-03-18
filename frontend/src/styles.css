@@ -1,5 +1,13 @@
 :root {
   color-scheme: light;
+  --body-bg: #fdfdfd;
+  --body-text: #1f2937;
+}
+
+.dark {
+  color-scheme: dark;
+  --body-bg: #0f0f17;
+  --body-text: #e5e7eb;
 }
 
 * {
@@ -15,8 +23,9 @@ body,
 body {
   margin: 0;
   font-family: 'Space Grotesk', 'Segoe UI', sans-serif;
-  background-color: #fdfdfd;
-  color: #1f2937;
+  background-color: var(--body-bg);
+  color: var(--body-text);
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 code,
