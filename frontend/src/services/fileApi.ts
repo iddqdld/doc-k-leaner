@@ -102,6 +102,29 @@ export interface SourceCount {
   count: number;
 }
 
+export interface SolidityOverview {
+  total_contracts: number;
+  total_scans: number;
+  completed_scans: number;
+  avg_score: number | null;
+  critical: number;
+  high: number;
+  medium: number;
+  low: number;
+  informational: number;
+}
+
+export interface SolidityDailyScans {
+  date: string;
+  count: number;
+}
+
+export interface GlobalOverview {
+  total_files: number;
+  total_size_bytes: number;
+  sandbox_lines: number;
+}
+
 export interface SandboxValidationResponse {
   sanitized_text: string;
   input_length: number;
@@ -190,16 +213,20 @@ export async function scanImage(image: string): Promise<ImageScanResponse> {
   });
 }
 
+export async function getGlobalOverview(): Promise<GlobalOverview> {
+  return requestJson<GlobalOverview>('/api/stats/global');
+}
+
 export async function getAuditStats(): Promise<AuditStats> {
   return requestJson<AuditStats>('/api/stats/overview');
 }
 
-export async function getScansOverTime(days = 30): Promise<DailyScans[]> {
-  return requestJson<DailyScans[]>(`/api/stats/scans-over-time?days=${days}`);
+export async function getScansOverTime(days = 30, offset = 0): Promise<DailyScans[]> {
+  return requestJson<DailyScans[]>(`/api/stats/scans-over-time?days=${days}&offset=${offset}`);
 }
 
-export async function getSeverityOverTime(days = 30): Promise<DailySeverity[]> {
-  return requestJson<DailySeverity[]>(`/api/stats/severity-over-time?days=${days}`);
+export async function getSeverityOverTime(days = 30, offset = 0): Promise<DailySeverity[]> {
+  return requestJson<DailySeverity[]>(`/api/stats/severity-over-time?days=${days}&offset=${offset}`);
 }
 
 export async function getFileTypeStats(): Promise<FileTypeCount[]> {
@@ -208,6 +235,14 @@ export async function getFileTypeStats(): Promise<FileTypeCount[]> {
 
 export async function getSourceStats(): Promise<SourceCount[]> {
   return requestJson<SourceCount[]>('/api/stats/by-source');
+}
+
+export async function getSolidityOverview(): Promise<SolidityOverview> {
+  return requestJson<SolidityOverview>('/api/stats/solidity/overview');
+}
+
+export async function getSolidityScansOverTime(days = 30): Promise<SolidityDailyScans[]> {
+  return requestJson<SolidityDailyScans[]>(`/api/stats/solidity/scans-over-time?days=${days}`);
 }
 
 export async function validateSandboxInput(
