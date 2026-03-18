@@ -39,6 +39,7 @@ class ScanHistoryItem(BaseModel):
     size: int
     scan_type: str
     created_at: str
+    report_id: str | None = None  # file_id for trivy, scan_id for solidity; null if no report
 
 
 class AdminOverview(BaseModel):

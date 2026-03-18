@@ -167,7 +167,7 @@ const SolidityScanner: React.FC = () => {
     <div className="w-full space-y-8 animate-in fade-in duration-700">
       <div className="text-center mb-12">
         <h1 className="text-4xl font-black text-orange-500 tracking-tight">Solidity Scanner</h1>
-        <p className="text-sm text-gray-500 mt-2">Analyse de smart contracts Solidity/EVM</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Analyse de smart contracts Solidity/EVM</p>
       </div>
 
       <div className="flex flex-col lg:flex-row items-start justify-center gap-8 max-w-7xl mx-auto">
@@ -177,7 +177,7 @@ const SolidityScanner: React.FC = () => {
             <button
               onClick={() => setMode('quick')}
               className={`flex items-center gap-2 text-xs font-bold transition-colors ${
-                mode === 'quick' ? 'text-gray-800' : 'text-gray-400'
+                mode === 'quick' ? 'text-gray-800 dark:text-gray-200' : 'text-gray-400 dark:text-gray-500'
               }`}
             >
               Quick Scan
@@ -185,7 +185,7 @@ const SolidityScanner: React.FC = () => {
             <button
               onClick={() => setMode('standard')}
               className={`flex items-center gap-2 text-xs font-bold transition-colors ${
-                mode === 'standard' ? 'text-orange-500' : 'text-gray-400'
+                mode === 'standard' ? 'text-orange-500' : 'text-gray-400 dark:text-gray-500'
               }`}
             >
               Standard Scan
@@ -193,7 +193,7 @@ const SolidityScanner: React.FC = () => {
           </div>
 
           {/* Upload card */}
-          <div className="bg-[#5d2e8e] rounded-md shadow-xl overflow-hidden">
+          <div className="bg-[#5d2e8e] rounded-md shadow-xl overflow-hidden dark:ring-1 dark:ring-white/5">
             <div className="p-8 space-y-6 flex flex-col items-center text-center">
               <p className="text-indigo-200 text-xs max-w-md leading-relaxed">
                 {mode === 'quick'
@@ -339,14 +339,14 @@ const SolidityScanner: React.FC = () => {
 
           {/* Findings table */}
           {findings.length > 0 && (
-            <div className="mt-6 w-full rounded-xl border border-[#5d2e8e]/20 bg-[#5d2e8e]/5 shadow-sm overflow-hidden">
+            <div className="mt-6 w-full rounded-xl border border-[#5d2e8e]/20 dark:border-[#5d2e8e]/30 bg-[#5d2e8e]/5 dark:bg-[#5d2e8e]/10 shadow-sm overflow-hidden">
               <div className="p-5 border-b border-[#5d2e8e]/20 flex items-center justify-between bg-[#5d2e8e] text-white">
                 <h3 className="font-semibold">Findings</h3>
                 <span className="text-xs text-white/80">{findings.length} vulnerabilities</span>
               </div>
-              <div className="bg-white divide-y divide-gray-100">
+              <div className="bg-white dark:bg-gray-900 divide-y divide-gray-100 dark:divide-gray-700">
                 {findings.map((f: SolidityFinding) => (
-                  <div key={f.id} className="hover:bg-[#5d2e8e]/5 transition-colors">
+                  <div key={f.id} className="hover:bg-[#5d2e8e]/5 dark:hover:bg-[#5d2e8e]/15 transition-colors">
                     <div
                       className="px-5 py-3 flex items-center gap-4 cursor-pointer"
                       onClick={() => setExpandedFinding(expandedFinding === f.id ? null : f.id)}
@@ -354,46 +354,46 @@ const SolidityScanner: React.FC = () => {
                       <span className={`text-xs font-bold px-2 py-0.5 rounded border ${severityBadge(f.severity)}`}>
                         {f.severity}
                       </span>
-                      <span className="text-xs text-gray-400 font-mono">{f.id}</span>
-                      <span className="text-sm text-gray-700 flex-1">{f.title}</span>
-                      <span className="text-xs text-gray-400">{f.file}:{f.line}</span>
-                      <span className="text-gray-400 text-xs">{expandedFinding === f.id ? '▲' : '▼'}</span>
+                      <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">{f.id}</span>
+                      <span className="text-sm text-gray-700 dark:text-gray-300 flex-1">{f.title}</span>
+                      <span className="text-xs text-gray-400 dark:text-gray-500">{f.file}:{f.line}</span>
+                      <span className="text-gray-400 dark:text-gray-500 text-xs">{expandedFinding === f.id ? '▲' : '▼'}</span>
                     </div>
                     {expandedFinding === f.id && (
-                      <div className="px-5 pb-4 space-y-3 border-t border-gray-50 bg-gray-50/50">
+                      <div className="px-5 pb-4 space-y-3 border-t border-gray-50 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
                         <div className="grid grid-cols-2 gap-4 text-xs pt-3">
                           <div>
-                            <span className="text-gray-500">Category:</span>{' '}
-                            <span className="text-gray-700 font-medium">{f.category}</span>
+                            <span className="text-gray-500 dark:text-gray-400">Category:</span>{' '}
+                            <span className="text-gray-700 dark:text-gray-300 font-medium">{f.category}</span>
                           </div>
                           <div>
-                            <span className="text-gray-500">Confidence:</span>{' '}
-                            <span className="text-gray-700 font-medium">{(f.confidence * 100).toFixed(0)}%</span>
+                            <span className="text-gray-500 dark:text-gray-400">Confidence:</span>{' '}
+                            <span className="text-gray-700 dark:text-gray-300 font-medium">{(f.confidence * 100).toFixed(0)}%</span>
                           </div>
                           <div>
-                            <span className="text-gray-500">Tool:</span>{' '}
-                            <span className="text-gray-700 font-medium">{f.tool}</span>
+                            <span className="text-gray-500 dark:text-gray-400">Tool:</span>{' '}
+                            <span className="text-gray-700 dark:text-gray-300 font-medium">{f.tool}</span>
                           </div>
                           {f.swc && (
                             <div>
-                              <span className="text-gray-500">SWC:</span>{' '}
-                              <span className="text-gray-700 font-medium">{f.swc}</span>
+                              <span className="text-gray-500 dark:text-gray-400">SWC:</span>{' '}
+                              <span className="text-gray-700 dark:text-gray-300 font-medium">{f.swc}</span>
                             </div>
                           )}
                         </div>
                         <div>
-                          <p className="text-xs text-gray-500 mb-1">Description</p>
-                          <p className="text-sm text-gray-700">{f.description}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Description</p>
+                          <p className="text-sm text-gray-700 dark:text-gray-300">{f.description}</p>
                         </div>
                         {f.code_snippet && (
                           <div>
-                            <p className="text-xs text-gray-500 mb-1">Code</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Code</p>
                             <pre className="text-xs bg-gray-900 text-green-300 rounded p-3 overflow-x-auto">{f.code_snippet}</pre>
                           </div>
                         )}
                         <div>
-                          <p className="text-xs text-gray-500 mb-1">Remediation</p>
-                          <p className="text-sm text-gray-700">{f.remediation}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Remediation</p>
+                          <p className="text-sm text-gray-700 dark:text-gray-300">{f.remediation}</p>
                         </div>
                       </div>
                     )}
@@ -405,15 +405,15 @@ const SolidityScanner: React.FC = () => {
         </div>
 
         {/* Sidebar — recent scans */}
-        <div className="w-full lg:w-72 bg-white border border-gray-100 shadow-sm rounded-sm p-6 space-y-6">
-          <h3 className="text-gray-600 font-medium border-b border-gray-50 pb-3">Recent Scans</h3>
+        <div className="w-full lg:w-72 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 shadow-sm rounded-sm p-6 space-y-6">
+          <h3 className="text-gray-600 dark:text-gray-300 font-medium border-b border-gray-50 dark:border-gray-700 pb-3">Recent Scans</h3>
           <div className="space-y-4">
             {recentScans.length === 0 && (
-              <p className="text-xs text-gray-500">No scans yet.</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">No scans yet.</p>
             )}
             {recentScans.map((scan) => (
               <div key={scan.scan_id} className="space-y-1">
-                <p className="text-xs text-gray-700 font-medium truncate">{scan.filename}</p>
+                <p className="text-xs text-gray-700 dark:text-gray-300 font-medium truncate">{scan.filename}</p>
                 <div className="flex items-center gap-2 text-[10px]">
                   <span className={`font-bold ${
                     scan.status === 'complete' ? 'text-emerald-600' :
@@ -422,12 +422,12 @@ const SolidityScanner: React.FC = () => {
                   }`}>
                     {scan.status}
                   </span>
-                  <span className="text-gray-400">·</span>
-                  <span className="text-gray-400">{scan.mode}</span>
+                  <span className="text-gray-400 dark:text-gray-500">·</span>
+                  <span className="text-gray-400 dark:text-gray-500">{scan.mode}</span>
                   {scan.score !== null && (
                     <>
-                      <span className="text-gray-400">·</span>
-                      <span className="text-gray-600 font-bold">{scan.score}/100</span>
+                      <span className="text-gray-400 dark:text-gray-500">·</span>
+                      <span className="text-gray-600 dark:text-gray-400 font-bold">{scan.score}/100</span>
                     </>
                   )}
                 </div>
@@ -439,7 +439,7 @@ const SolidityScanner: React.FC = () => {
                     {scan.severity_counts.low > 0 && <span className="text-emerald-500">L:{scan.severity_counts.low}</span>}
                   </div>
                 )}
-                <p className="text-[10px] text-gray-400">
+                <p className="text-[10px] text-gray-400 dark:text-gray-500">
                   {new Date(scan.created_at).toLocaleDateString()}
                 </p>
               </div>

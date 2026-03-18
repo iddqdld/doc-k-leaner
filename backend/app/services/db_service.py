@@ -425,15 +425,19 @@ async def delete_user_by_id(conn, user_id: str) -> bool:
 
 
 async def get_user_scan_history(conn, user_id: str) -> list[dict]:
-    """Return files + solidity contracts owned by a user, newest first."""
+    """Return files + solidity contracts owned by a user, newest first.
+    report_id: for trivy = file_id (for GET /api/files/{id}/scan), for solidity = latest scan_id.
+    """
     async with conn.cursor() as cur:
         await cur.execute(
             """
-            SELECT id, filename, size, 'trivy' AS scan_type, created_at
+            SELECT id, filename, size, 'trivy' AS scan_type, created_at, id AS report_id
             FROM files WHERE owner_id = %s
             UNION ALL
-            SELECT id, filename, size, 'solidity' AS scan_type, created_at
-            FROM solidity_contracts WHERE owner_id = %s
+            SELECT sc.id, sc.filename, sc.size, 'solidity' AS scan_type, sc.created_at,
+                   (SELECT ss.id FROM solidity_scans ss WHERE ss.contract_id = sc.id
+                    ORDER BY ss.created_at DESC LIMIT 1) AS report_id
+            FROM solidity_contracts sc WHERE sc.owner_id = %s
             ORDER BY created_at DESC
             LIMIT 200
             """,
@@ -447,6 +451,7 @@ async def get_user_scan_history(conn, user_id: str) -> list[dict]:
             "size": r[2],
             "scan_type": r[3],
             "created_at": r[4].isoformat() if r[4] else "",
+            "report_id": str(r[5]) if r[5] else None,
         }
         for r in rows
     ]
