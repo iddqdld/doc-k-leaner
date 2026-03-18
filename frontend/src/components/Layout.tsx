@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -13,58 +12,116 @@ const navItems = [
   { id: 'solidity', label: 'Solidity Scanner' },
   { id: 'collections', label: 'Sandbox' },
   { id: 'ressources', label: 'Ressources' },
- // { id: 'demande', label: "Demande d'informations" },
   { id: 'infrastructure', label: 'Infrastructure' },
 ];
 
 const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab }) => {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const handleNav = useCallback(
+    (id: string) => {
+      setActiveTab(id);
+      setSidebarOpen(false);
+    },
+    [setActiveTab],
+  );
+
   return (
-    <div className="min-h-screen flex flex-col bg-[radial-gradient(circle_at_top,_#f8f4ff_0,_#fdfdfd_48%,_#f4f8ff_100%)]">
-      {/* Top Navbar */}
-      <nav className="bg-[#3a165d] text-white px-4 h-14 flex items-center shadow-md z-50 border-b border-white/10">
-        <div className="flex items-center space-x-6 overflow-x-auto no-scrollbar">
-        <div className="flex items-center mr-8 border-r border-white/20 pr-6">
-            <a 
-              href="https://github.com/iddqdld/doc-k-leaner"
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="hover:text-orange-500 transition-colors flex items-center gap-2"
-              title="Voir sur GitHub"
-            >
-              <svg 
-                height="28" 
-                viewBox="0 0 16 16" 
-                fill="currentColor" 
-                className="w-7 h-7"
-              >
-                <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
-              </svg>
-              <span className="hidden sm:inline font-bold text-sm tracking-tight">GitHub</span>
-            </a>
-          </div>
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#f8f4ff_0,_#fdfdfd_48%,_#f4f8ff_100%)]">
+      {/* Mobile top bar */}
+      <div className="fixed top-0 left-0 right-0 h-14 bg-[#3a165d] flex items-center px-4 z-40 lg:hidden border-b border-white/10">
+        <button
+          onClick={() => setSidebarOpen(true)}
+          className="text-white hover:text-orange-500 transition-colors"
+          aria-label="Open menu"
+        >
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+        <a
+          href="https://github.com/iddqdld/doc-k-leaner"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="ml-4 text-xl font-black text-orange-500 tracking-tight hover:text-orange-400 transition-colors"
+        >
+          Doc(k)leaner
+        </a>
+      </div>
+
+      {/* Backdrop overlay (mobile) */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 z-40 lg:hidden transition-opacity"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside
+        className={`
+          fixed top-0 left-0 h-screen w-60 bg-[#3a165d] z-50 flex flex-col
+          border-r border-white/10 shadow-xl
+          transition-transform duration-300 ease-in-out
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+          lg:translate-x-0
+        `}
+      >
+        {/* Brand */}
+        <div className="px-6 py-6 border-b border-white/10">
+          <a
+            href="https://github.com/iddqdld/doc-k-leaner"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-2xl font-black text-orange-500 tracking-tight hover:text-orange-400 transition-colors"
+          >
+            Doc(k)leaner
+          </a>
+        </div>
+
+        {/* Nav items */}
+        <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
           {navItems.map((item) => (
             <button
               key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              className={`text-xs tracking-wide font-semibold whitespace-nowrap transition-colors ${
-                activeTab === item.id
-                  ? 'text-orange-500'
-                  : 'text-violet-100/80 hover:text-white'
-              }`}
+              onClick={() => handleNav(item.id)}
+              className={`
+                w-full text-left px-4 py-2.5 rounded-lg text-xs font-semibold tracking-wide
+                transition-all duration-150
+                ${
+                  activeTab === item.id
+                    ? 'text-orange-500 bg-white/10 border-l-2 border-orange-500'
+                    : 'text-violet-100/80 hover:text-white hover:bg-white/5'
+                }
+              `}
             >
               {item.label}
             </button>
           ))}
+        </nav>
+
+        {/* Bottom: GitHub link */}
+        <div className="px-6 py-4 border-t border-white/10">
+          <a
+            href="https://github.com/iddqdld/doc-k-leaner"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 text-violet-200/60 hover:text-white transition-colors text-xs"
+          >
+            <svg height="16" viewBox="0 0 16 16" fill="currentColor" className="w-4 h-4">
+              <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+            </svg>
+            Voir sur GitHub
+          </a>
         </div>
-      </nav>
+      </aside>
 
-      {/* Main Content Area */}
-      <main className="flex-1 w-full max-w-7xl mx-auto px-4 py-12 flex flex-col items-center">
-        {children}
+      {/* Main content area */}
+      <main className="min-h-screen pt-14 lg:pt-0 lg:ml-60">
+        <div className="w-full max-w-7xl mx-auto px-4 py-12 flex flex-col items-center">
+          {children}
+        </div>
       </main>
-
-      {/* Footer */}
-      <footer className="bg-[#3a165d] h-16 w-full mt-auto border-t border-white/10"></footer>
     </div>
   );
 };
