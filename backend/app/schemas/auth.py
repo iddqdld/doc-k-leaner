@@ -57,3 +57,21 @@ class AdminUserRow(BaseModel):
     provider: str
     created_at: str
     owned_items: int
+
+
+class DockerContainerRow(BaseModel):
+    service: str
+    name: str
+    container_id: str
+    state: str
+    status: str
+    image: str
+
+
+class DockerContainersResponse(BaseModel):
+    containers: list[DockerContainerRow]
+    hint: str | None = None
+
+
+class DockerLogsResponse(BaseModel):
+    logs: str

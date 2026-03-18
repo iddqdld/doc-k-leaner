@@ -13,7 +13,6 @@ const baseNavItems = [
   { id: 'scanner', label: 'Analyse Fichiers' },
   { id: 'solidity', label: 'Solidity Scanner' },
   { id: 'collections', label: 'Sandbox' },
-  { id: 'infrastructure', label: 'Infrastructure' },
 ];
 
 const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab }) => {
@@ -30,13 +29,20 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab }) =>
   );
 
   const navItems = [
-    ...baseNavItems.slice(0, 4),
-    ...(user?.role === 'admin' ? [{ id: 'ressources', label: 'Ressources' }] : []),
-    baseNavItems[4],
+    ...baseNavItems,
+    ...(user?.role === 'admin'
+      ? [
+          { id: 'ressources', label: 'Ressources' },
+          { id: 'docker', label: 'Docker (admin)' },
+        ]
+      : []),
   ];
 
   useEffect(() => {
-    if (activeTab === 'ressources' && (!user || user.role !== 'admin')) {
+    if (
+      (activeTab === 'ressources' || activeTab === 'docker') &&
+      (!user || user.role !== 'admin')
+    ) {
       setActiveTab('scanner');
     }
   }, [activeTab, user, setActiveTab]);
