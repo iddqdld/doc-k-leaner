@@ -53,6 +53,7 @@ from app.services.file_service import (
 from app.services.storage_service import build_storage_path, save_file_to_disk, delete_file_from_disk
 from app.services.scan_service import run_trivy_scan, run_trivy_image_scan, build_scan_output_path
 from app.services.url_fetch_service import RemoteFileTooLargeError, UnsafeFetchURLError, fetch_url_with_limit
+from app.core.deps import get_optional_user, require_admin
 
 # setup example @router.post("/upload") -> POST /api/files/upload
 router = APIRouter(
@@ -147,9 +148,10 @@ async def get_redis() -> aioredis.Redis:
 )
 async def upload_file(
     request: Request,
-    file: UploadFile = File(...), # multipart parsing by fastapi eg returns orginal filename docker-compose.yaml
-    redis: aioredis.Redis = Depends(get_redis), # depends to call get_redis() before the function and cleanup (finally:) after function returns
+    file: UploadFile = File(...),
+    redis: aioredis.Redis = Depends(get_redis),
     db = Depends(get_db),
+    user: dict | None = Depends(get_optional_user),
 ):
     """
     Upload a file via drag & drop or file picker.
@@ -194,7 +196,8 @@ async def upload_file(
             source="upload",
             file_id=file_id,
         )
-        await insert_file_record(db, metadata, storage_path)
+        owner_id = user["id"] if user else None
+        await insert_file_record(db, metadata, storage_path, owner_id=owner_id)
         try:
             scan_summary, output_path, scan_status, scan_created_at = await run_trivy_scan(
                 file_id,
@@ -242,7 +245,6 @@ async def upload_file(
         delete_file_from_disk(storage_path)
         raise HTTPException(status_code=500, detail=f"Failed to store file: {exc}")
     
-    # return response
     return FileUploadResponse(
         file_id=metadata.file_id,
         filename=metadata.filename,
@@ -271,6 +273,7 @@ async def upload_from_url(
     payload: FileFromURLRequest,
     redis: aioredis.Redis = Depends(get_redis),
     db = Depends(get_db),
+    user: dict | None = Depends(get_optional_user),
 ):
     """
     Fetch a file from a URL and store it.
@@ -335,7 +338,8 @@ async def upload_from_url(
             original_url=original_url,
             file_id=file_id,
         )
-        await insert_file_record(db, metadata, storage_path)
+        owner_id = user["id"] if user else None
+        await insert_file_record(db, metadata, storage_path, owner_id=owner_id)
         try:
             scan_summary, output_path, scan_status, scan_created_at = await run_trivy_scan(
                 file_id,
@@ -564,7 +568,8 @@ async def scan_image(
 async def list_admin_files(
     request: Request,
     limit: int = 50,
-    db = Depends(get_db),
+    db=Depends(get_db),
+    _admin=Depends(require_admin),
 ):
     limit = max(1, min(int(limit), 200))
     records = await list_file_records(db, limit=limit)

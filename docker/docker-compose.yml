@@ -31,6 +31,12 @@ services:
       - DOCKCLEANER_SANDBOX_LLM_MODEL=phi3:mini
       - DOCKCLEANER_SANDBOX_LLM_TEMPERATURE=0.0
       - DOCKCLEANER_SOLIDITYGUARD_URL=http://solidityguard:8000
+      # Auth (values loaded from docker/.env)
+      - DOCKCLEANER_JWT_SECRET=${DOCKCLEANER_JWT_SECRET}
+      - DOCKCLEANER_GOOGLE_CLIENT_ID=${DOCKCLEANER_GOOGLE_CLIENT_ID}
+      - DOCKCLEANER_GOOGLE_CLIENT_SECRET=${DOCKCLEANER_GOOGLE_CLIENT_SECRET}
+      # Admin Docker tab: compose project label (dirname when running from docker/). Use * for all containers.
+      - DOCKCLEANER_DOCKER_COMPOSE_PROJECT=${DOCKCLEANER_DOCKER_COMPOSE_PROJECT:-docker}
     volumes:
       - ./data/storage:/app/data/storage
       - ./data/scans:/app/data/scans

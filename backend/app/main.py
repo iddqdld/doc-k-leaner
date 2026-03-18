@@ -6,6 +6,7 @@ from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
 from redis import asyncio as aioredis
 
+from app.api.auth import router as auth_router
 from app.api.files import router as files_router
 from app.api.news import router as news_router
 from app.api.stats import router as stats_router
@@ -40,15 +41,15 @@ app = FastAPI(
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
-    # With wildcard origins, credentials must be disabled (browser/CORS spec).
-    allow_credentials=False,
+    allow_origins=["*"],  # Tighten to specific origins in production
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
 # Include routers
+app.include_router(auth_router)
 app.include_router(files_router)
 app.include_router(news_router)
 app.include_router(stats_router)
